@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
 """
-Backend: Simple Google ADK (Agent Development Kit) agent instance.
-
-Requirements:
-  pip install google-adk python-dotenv
+Backend: Simple Google ADK (Agent Development Kit) agent instance. 
 
 Model Authentication (choose ONE):
 - Google AI Studio (API key):
