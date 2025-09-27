@@ -23,28 +23,40 @@ try:
 except Exception:
     pass
 
-from google.adk.agents import LlmAgent
+from google.adk.agents import LlmAgent, SequentialAgent
 from google.adk.tools import google_search
 from google.adk.tools.agent_tool import AgentTool
 
 from .util import load_instruction_from_file
 
-# --- Sub Agent 1: Scriptwriter ---
+# --- Sub Agent 2: Summarizer ---
+summarizer_agent = LlmAgent(
+    name="VideoSummarizer", 
+    model="gemini-2.5-flash",
+    instruction=load_instruction_from_file("./instructions/transcript_summarizer.txt"),
+    description="Creates concise summaries from video transcripts to reduce token usage",
+    output_key="video_summary",  # Save result to state
+)
+
+summarize_tool = AgentTool(agent=summarizer_agent)
+
+# --- Sub Agent 1: Transcriber ---
 transcriber_agent = LlmAgent(
     name="VideoTranscriber",
     model="gemini-2.5-flash",
     instruction=load_instruction_from_file("./instructions/video_transcriber.txt"),
     description="Transcribes audio from video files into clean, formatted text",
+    tools=[summarize_tool],
     output_key="video_transcript",  # Save result to state
 )
 
-# --- Llm Agent Workflow ---
+# --- Main YouTube Agent ---
 youtube_agent = LlmAgent(
     name="youtube_agent",
     model="gemini-2.5-flash",
     instruction=load_instruction_from_file("./instructions/youtube_instruction.txt"),
     description="Agent to create YouTube Shorts from video files using sub-agents.",
-    sub_agents=[transcriber_agent]
+    sub_agents=[transcriber_agent, summarizer_agent]  # Individual agents, not pipeline
 )
 
 # --- Root Agent for the Runner ---
