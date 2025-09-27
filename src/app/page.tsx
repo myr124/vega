@@ -15,6 +15,8 @@ export default function Home() {
     const [video, setVideo] = useState<File | null>(null);
     const [response, setResponse] = useState("");
     const [loading, setLoading] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [videoUri, setVideoUri] = useState<string | null>(null);
     // ...existing code...
     const handleSubmit = async () => {
         setLoading(true);

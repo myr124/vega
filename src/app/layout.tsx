@@ -13,6 +13,9 @@ import {
     NavigationMenuViewport,
 } from "@/components/ui/navigation-menu"
 import Link from "next/link";
+import { createClient } from "@/lib/supabase";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 
 
 
