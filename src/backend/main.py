@@ -18,6 +18,7 @@ import tempfile
 import subprocess
 import shutil
 import asyncio
+import httpx
 
 
 # Load environment variables
@@ -32,6 +33,7 @@ if env_path.exists():
 class RunRequest(BaseModel):
     prompt: Optional[str] = Form(None)
     video: Optional[UploadFile] = File(None)
+    video_uri: Optional[str] = Form(None)
 
 
 class RunResponse(BaseModel):
@@ -51,7 +53,9 @@ def _extract_result(raw: Any) -> Any:
     return raw
 
 
-def compress_video_bytes(input_bytes: bytes, original_filename: Optional[str] = None, target_ext: str = "mp4") -> bytes:
+def compress_video_bytes(
+    input_bytes: bytes, original_filename: Optional[str] = None, target_ext: str = "mp4"
+) -> bytes:
     """
     Compress video bytes using the system ffmpeg CLI.
 
@@ -161,11 +165,16 @@ def health() -> Dict[str, str]:
 
 @app.post("/agent/run", response_model=RunResponse)
 async def run_agent(
-    prompt: Optional[str] = Form(None), video: Optional[UploadFile] = File(None)
+    prompt: Optional[str] = Form(None),
+    video: Optional[UploadFile] = File(None),
+    video_uri: Optional[str] = Form(None),
 ) -> RunResponse:
-    if not prompt and not video:
+    print(
+        f"[run_agent] Received prompt={bool(prompt)} video_present={bool(video)} video_uri_present={bool(video_uri)}"
+    )
+    if not prompt and not video and not video_uri:
         raise HTTPException(
-            status_code=400, detail="Either prompt or video is required"
+            status_code=400, detail="Either prompt, video, or video_uri is required"
         )
 
     try:
@@ -184,26 +193,59 @@ async def run_agent(
         if prompt:
             parts.append(types.Part(text=prompt.strip()))
 
-        if video:
-            video_bytes = await video.read()
+        video_bytes: Optional[bytes] = None
+        mime_type: Optional[str] = None
+        original_filename: Optional[str] = (
+            getattr(video, "filename", None) if video else None
+        )
 
-            # Try to compress the video bytes in a thread to avoid blocking the event loop
+        if video_uri:
             try:
-                compressed_bytes = await asyncio.to_thread(
-                    compress_video_bytes, video_bytes, getattr(video, "filename", None), "mp4"
-                )
+                async with httpx.AsyncClient(
+                    follow_redirects=True, timeout=60.0
+                ) as client:
+                    resp = await client.get(video_uri)
+                    resp.raise_for_status()
+                    video_bytes = resp.content
+                    ct = resp.headers.get("Content-Type")
+                    if ct:
+                        mime_type = ct
+                    print(
+                        f"[run_agent] Fetched video from URI; bytes={len(video_bytes) if video_bytes else 0} mime={mime_type}"
+                    )
             except Exception as e:
-                print(f"WARNING: compression thread failed: {e}")
-                compressed_bytes = video_bytes
+                print(f"WARNING: failed to fetch video from URI: {e}")
+                video_bytes = None
 
+            if not mime_type:
+                if isinstance(video_uri, str) and video_uri.lower().endswith(".mp4"):
+                    mime_type = "video/mp4"
+                else:
+                    mime_type = "application/octet-stream"
+
+        elif video:
+            video_bytes = await video.read()
             # Force video/mp4 for MP4 files, as content_type may default to octet-stream
             if video.filename and video.filename.lower().endswith(".mp4"):
                 mime_type = "video/mp4"
             else:
                 mime_type = video.content_type or "video/mp4"
+            print(
+                f"[run_agent] Received video file upload; bytes={len(video_bytes) if video_bytes else 0} mime={mime_type}"
+            )
+
+        if video_bytes:
+            # Try to compress the video bytes in a thread to avoid blocking the event loop
+            try:
+                compressed_bytes = await asyncio.to_thread(
+                    compress_video_bytes, video_bytes, original_filename, "mp4"
+                )
+            except Exception as e:
+                print(f"WARNING: compression thread failed: {e}")
+                compressed_bytes = video_bytes
 
             base64_data = base64.b64encode(compressed_bytes).decode("utf-8")
-            file_data = types.Blob(mime_type=mime_type, data=base64_data)
+            file_data = types.Blob(mime_type=mime_type or "video/mp4", data=base64_data)
             parts.append(types.Part(inline_data=file_data))
 
         if not parts:

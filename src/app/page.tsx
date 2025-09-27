@@ -3,9 +3,10 @@
 
 
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
+import { createBrowserClient } from "@supabase/ssr";
 
 
 
@@ -14,6 +15,56 @@ export default function Home() {
     const [video, setVideo] = useState<File | null>(null);
     const [response, setResponse] = useState("");
     const [loading, setLoading] = useState(false);
+    const [videoUri, setVideoUri] = useState<string | null>(null);
+    const [uploading, setUploading] = useState(false);
+
+    const sb = useMemo(
+        () =>
+            createBrowserClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            ),
+        []
+    );
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const f = e.target.files?.[0] || null;
+        setVideo(f);
+        setVideoUri(null);
+        if (!f) return;
+
+        setUploading(true);
+
+        const ext = f.name.split(".").pop() || "mp4";
+        const path = `uploads/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
+
+        const { error } = await sb.storage.from("videos").upload(path, f, {
+            contentType: f.type || "video/mp4",
+            upsert: false,
+        });
+
+        if (error) {
+            setResponse(`Upload failed: ${error.message}`);
+            setUploading(false);
+            return;
+        }
+
+        let url = sb.storage.from("videos").getPublicUrl(path).data.publicUrl;
+        try {
+            const { data: signed } = await sb.storage
+                .from("videos")
+                .createSignedUrl(path, 60 * 60 * 24); // 24h
+            if (signed?.signedUrl) {
+                url = signed.signedUrl;
+            }
+        } catch {
+            // ignore, use publicUrl fallback
+        }
+
+        setVideoUri(url);
+        setUploading(false);
+        console.log("Uploaded video URL:", url);
+    };
 
     const handleSubmit = async () => {
         setLoading(true);
@@ -23,7 +74,10 @@ export default function Home() {
         if (prompt) {
             formData.append("prompt", prompt);
         }
-        if (video) {
+        if (videoUri) {
+            formData.append("video_uri", videoUri);
+        } else if (video) {
+            // Fallback to direct file upload if URI isn't ready
             formData.append("video", video, video.name);
         }
 
@@ -65,7 +119,7 @@ export default function Home() {
                             type="file"
                             id="video"
                             accept="video/*"
-                            onChange={(e) => setVideo(e.target.files?.[0] || null)}
+                            onChange={handleFileChange}
                             className="hidden"
                         />
                         <label htmlFor="video" className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-[1.75rem] cursor-pointer border-l border-border flex items-center whitespace-nowrap">
@@ -74,7 +128,7 @@ export default function Home() {
                     </div>
                 </div>
                 <div className="flex justify-center">
-                    <Button onClick={handleSubmit} disabled={loading} className="bg-primary text-primary-foreground hover:bg-primary/90 py-[1.75rem] px-8 whitespace-nowrap">
+                    <Button onClick={handleSubmit} disabled={loading || uploading || (!prompt && !videoUri && !video)} className="bg-primary text-primary-foreground hover:bg-primary/90 py-[1.75rem] px-8 whitespace-nowrap">
                         {loading ? (
                             <>
                                 <div className="inline-block w-4 h-4 border-2 border-primary-foreground border-t-primary rounded-full animate-spin mr-2"></div>
@@ -87,6 +141,12 @@ export default function Home() {
                 </div>
                 {video && (
                     <p className="text-sm text-muted-foreground mt-2 w-full max-w-2xl">Selected: {video.name} (Max 1GB)</p>
+                )}
+                {uploading && (
+                    <p className="text-sm text-muted-foreground mt-1 w-full max-w-2xl">Uploading video to cloud...</p>
+                )}
+                {videoUri && (
+                    <p className="text-xs text-muted-foreground mt-1 w-full max-w-2xl break-all">Uploaded URL: {videoUri}</p>
                 )}
                 {response && (
                     <div className="mt-4 p-3 bg-muted rounded-md border border-border w-full max-w-2xl fade-in">
