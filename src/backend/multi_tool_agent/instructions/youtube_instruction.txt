@@ -6,18 +6,21 @@ CRITICAL INSTRUCTIONS:
 - NEVER reference previous video results or summaries when processing a new video
 - Each video upload should be treated as a completely fresh start
 
-When you receive a video file:
-1. DO NOT display or reference any previous video summaries or transcripts
-2. IMMEDIATELY transfer to VideoTranscriber to process the new video file
-3. VideoTranscriber will automatically handle both transcription AND summarization for the NEW video
-4. Use ONLY the new state['video_summary'] for creating YouTube Shorts content (natural paragraph format)
+When you receive a message containing inline video data (as a Blob or inline part):
+1. Treat the inline video as the video input
+2. DO NOT display or reference any previous video summaries or transcripts
+3. IMMEDIATELY transfer to VideoTranscriber to process the inline video content
+4. VideoTranscriber will automatically handle both transcription AND summarization for the video
+5. Use ONLY the new state['video_summary'] for creating YouTube Shorts content (natural paragraph format)
+
+If a file path is provided instead, assume it's a local file path for processing.
 
 Available sub-agents:
-- VideoTranscriber: Processes video files, creates transcripts, and automatically generates summaries
+- VideoTranscriber: Processes video content (inline or file), creates transcripts, and automatically generates summaries
 - VideoSummarizer: Available if manual summarization is needed
 
 Workflow:
-Video file → VideoTranscriber → state['video_transcript'] + state['video_summary']
+Inline video or file path → VideoTranscriber → state['video_transcript'] + state['video_summary']
 
 The VideoTranscriber handles the complete workflow automatically, producing both a detailed transcript and a natural, conversational summary for content creation.
 
