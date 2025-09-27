@@ -1,19 +1,3 @@
-# Copyright 2025 Google LLC
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-
-# Shows how to call all the sub-agents using the LLM's reasoning ability. Run this with "adk run" or "adk web"
-
 import os
 
 # Load environment variables
@@ -50,83 +34,63 @@ transcriber_agent = LlmAgent(
     output_key="video_transcript",  # Save result to state
 )
 
-# --- Main YouTube Agent ---
-youtube_agent = LlmAgent(
-    name="youtube_agent",
-    model="gemini-2.5-flash",
-    instruction=load_instruction_from_file("./instructions/youtube_instruction.txt"),
-    description="Agent to create YouTube Shorts from video files using sub-agents.",
-    sub_agents=[transcriber_agent, summarizer_agent]  # Individual agents, not pipeline
-)
+# --- Create research agents with different personalities (reduced set for testing) ---
+research_agents = []
 
-interest_levels = ["beginner", "intermediate", "expert"]
-
-# Archetype base instruction file mapping. Use specific instruction files if available.
-arch_instructions = {
-    "enjoyer": "./instructions/enjoyer_instruction.txt",
-    "shopping": "./instructions/enjoyer_instruction.txt",
-    "music": "./instructions/enjoyer_instruction.txt",
-    "movies_tv": "./instructions/enjoyer_instruction.txt",
-    "gaming": "./instructions/enjoyer_instruction.txt",
-    "news": "./instructions/enjoyer_instruction.txt",
-    "sports": "./instructions/enjoyer_instruction.txt",
-    "learning": "./instructions/enjoyer_instruction.txt",
-    "course": "./instructions/enjoyer_instruction.txt",
-    "fashionBeauty": "./instructions/enjoyer_instruction.txt",
-    "hater": "./instructions/enjoyer_instruction.txt",
+# Map archetypes to their specialist categories
+archetype_to_category = {
+    "enjoyer": "entertainment",
+    "hater": "general", 
+    "learning": "learning",
+    "gaming": "gaming",
+    "music": "music"
 }
 
-# Create three agents (beginner/intermediate/expert) for each archetype.
-generated_agents: list[LlmAgent] = []
-for archetype, instr_path in arch_instructions.items():
+personality_archetypes = ["enjoyer", "hater", "learning", "gaming", "music"]  # Reduced from 11 to 5
+interest_levels = ["beginner", "intermediate", "expert"]
+
+for archetype in personality_archetypes:
+    category = archetype_to_category[archetype]
     for level in interest_levels:
-        agent_name = f"{archetype}_{level}_agent"
-        # Load the archetype-specific instruction and substitute the {level} placeholder
-        instruction_text = load_instruction_from_file(instr_path).replace("{level}", level)
-        a = LlmAgent(
+        agent_name = f"{archetype}_{level}_reviewer"
+        instruction_text = load_instruction_from_file("./instructions/enjoyer_instruction.txt").replace("{level}", level).replace("{category}", category)
+        agent = LlmAgent(
             name=agent_name,
             model="gemini-2.5-flash",
             instruction=instruction_text,
-            description=f"{archetype} agent for {level} level",
-            output_key="video_transcript",
+            description=f"{archetype} reviewer with {level} level perspective in {category}",
+            output_key=f"{archetype}_{level}_review"
         )
-        generated_agents.append(a)
+        research_agents.append(agent)
 
-# Use the generated agents as the pool for parallel research
-agents: list[LlmAgent] = generated_agents
-
-
-for interest in interest_levels:
-    for agent in agents:
-        agent.instruction = agent.instruction.replace("{level}", interest)
-        # Ensure output_key is a string (remove accidental tuple trailing comma)
-        agent.output_key = "video_transcript"
-        # NOTE: LlmAgent does not define a `prompt` field (it's a pydantic model).
-        # Do not assign arbitrary attributes on the agent instances. If you need
-        # to build a prompt that includes the transcript, do that at runtime when
-        # invoking the agent/runner instead of mutating the LlmAgent object here.
-
+# --- Parallel Research Agent (for reviewer personalities) ---
 parallel_research_agent = ParallelAgent(
     name="parallel_research_agent",
-    # model="gemini-2.5-flash",
-    sub_agents = generated_agents,
-    description = "Runs multiple agents in parallel"
+    sub_agents=research_agents,  # 15 agents instead of 33
+    description="Runs multiple reviewer personalities in parallel"
 )
 
+# --- Merger Agent ---
 merger_agent = LlmAgent(
     name="merger_agent",
     model="gemini-2.5-flash",
-    description="Merges and synthesizes outputs from multiple agents into a cohesive final output.",
-    # prompt="Here are the outputs from various agents: {agent_outputs}. Please merge them into a single, coherent summary.",
+    instruction="You are a synthesis agent. Your job is to merge and analyze all the reviewer outputs from the parallel research phase. Combine all the JSON responses from the different reviewer personalities (enjoyer, hater, learning, gaming, music across beginner/intermediate/expert levels) and provide a comprehensive analysis of predicted video performance including average retention rates, viewing likelihood, and like/dislike patterns across different audience segments.",
+    description="Merges and synthesizes outputs from multiple reviewer agents into a cohesive final output.",
     output_key="final_summary",
 )
 
-# --- Root Agent for the Runner ---
-# Create a sequential root agent so that the youtube_agent runs first,
-# then the parallel_research_agent executes, and finally the merger_agent
-# synthesizes outputs from the previous steps.
-root_agent = SequentialAgent(
-    name="root_sequential_agent",
-    sub_agents=[youtube_agent, parallel_research_agent, merger_agent],
-    description="Run youtube pipeline, then run parallel research agents, then merge outputs",
+# --- Sequential Pipeline (Following ADK Documentation Pattern) ---
+# This matches the exact pattern from the official ADK docs for ParallelAgent usage
+sequential_pipeline_agent = SequentialAgent(
+    name="VideoAnalysisPipeline", 
+    sub_agents=[
+        transcriber_agent,          # Phase 1: Video processing (transcript + summary)
+        parallel_research_agent,    # Phase 2: Parallel reviewer analysis (15 agents)
+        merger_agent               # Phase 3: Synthesis of all results
+    ],
+    description="Coordinates video processing, parallel research, and synthesis following ADK best practices."
 )
+
+# --- Root Agent (Following ADK Documentation) ---
+# The SequentialAgent is the root agent, as shown in the official docs
+root_agent = sequential_pipeline_agent
