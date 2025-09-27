@@ -43,7 +43,10 @@ export default function RootLayout({
     return (
         <html className={newsReader.className} lang="en">
             <body className="dark">
-                <nav className="flex items-center p-4 bg-transparent border-b border-border/50">
+                <nav
+                    className="flex items-center p-4 border-b border-border/50 sticky top-0 z-50"
+                    style={{ background: "var(--background)" }}
+                >
                     <div className="text-2xl font-bold text-foreground mr-8">VEGA</div>
                     <div className="flex-1 flex justify-center">
                         <NavigationMenu className="flex">

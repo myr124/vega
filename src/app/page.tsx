@@ -58,8 +58,9 @@ export default function Home() {
                             id="prompt"
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
+                            // change this to make it not a text input. make it a file input that accepts video files
                             className="flex-1 px-4 py-[1.75rem] bg-background border-r border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                            placeholder="Search for AI agents or enter your query..."
+                            placeholder="No File Chosen. MAX 1GB .mov .mp4 only"
                         />
                         <input
                             type="file"
