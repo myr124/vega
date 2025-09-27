@@ -3,13 +3,15 @@ from typing import Any, Dict, Optional
 
 from dotenv import load_dotenv
 from pathlib import Path
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
 from pydantic import BaseModel
 from multi_tool_agent.agent import root_agent
 from google.adk.runners import Runner, types
 from google.adk.sessions import InMemorySessionService
+
+import base64
 
 
 # Load environment variables
@@ -22,7 +24,8 @@ if env_path.exists():
 
 
 class RunRequest(BaseModel):
-    prompt: str
+    prompt: Optional[str] = Form(None)
+    video: Optional[UploadFile] = File(None)
 
 
 class RunResponse(BaseModel):
@@ -69,9 +72,13 @@ def health() -> Dict[str, str]:
 
 
 @app.post("/agent/run", response_model=RunResponse)
-def run_agent(req: RunRequest) -> RunResponse:
-    if not req.prompt or not req.prompt.strip():
-        raise HTTPException(status_code=400, detail="prompt is required")
+async def run_agent(
+    prompt: Optional[str] = Form(None), video: Optional[UploadFile] = File(None)
+) -> RunResponse:
+    if not prompt and not video:
+        raise HTTPException(
+            status_code=400, detail="Either prompt or video is required"
+        )
 
     try:
         session_service = InMemorySessionService()
@@ -84,9 +91,26 @@ def run_agent(req: RunRequest) -> RunResponse:
         session_service.create_session_sync(
             app_name="vega-agent", user_id=user_id, session_id=session_id
         )
-        new_message = types.Content(
-            parts=[types.Part(text=req.prompt.strip())], role="user"
-        )
+
+        parts = []
+        if prompt:
+            parts.append(types.Part(text=prompt.strip()))
+
+        if video:
+            video_bytes = await video.read()
+            # Force video/mp4 for MP4 files, as content_type may default to octet-stream
+            if video.filename and video.filename.lower().endswith(".mp4"):
+                mime_type = "video/mp4"
+            else:
+                mime_type = video.content_type or "video/mp4"
+            base64_data = base64.b64encode(video_bytes).decode("utf-8")
+            file_data = types.Blob(mime_type=mime_type, data=base64_data)
+            parts.append(types.Part(inline_data=file_data))
+
+        if not parts:
+            parts.append(types.Part(text="Process this video for YouTube Shorts."))
+
+        new_message = types.Content(parts=parts, role="user")
         events = list(
             runner.run(user_id=user_id, session_id=session_id, new_message=new_message)
         )
@@ -114,4 +138,4 @@ def run_agent(req: RunRequest) -> RunResponse:
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("main:app", host="localhost", port=8000, reload=True)
+    uvicorn.run("main:app", host="localhost", port=2000, reload=True)
