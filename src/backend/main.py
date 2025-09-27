@@ -14,6 +14,10 @@ from google.adk.sessions import InMemorySessionService
 import base64
 import json
 import datetime
+import tempfile
+import subprocess
+import shutil
+import asyncio
 
 
 # Load environment variables
@@ -45,6 +49,88 @@ def _extract_result(raw: Any) -> Any:
     elif hasattr(raw, "result") or hasattr(raw, "output"):
         return getattr(raw, "result", getattr(raw, "output", raw))
     return raw
+
+
+def compress_video_bytes(input_bytes: bytes, original_filename: Optional[str] = None, target_ext: str = "mp4") -> bytes:
+    """
+    Compress video bytes using the system ffmpeg CLI.
+
+    - If ffmpeg is not installed or compression fails, returns the original bytes.
+    - Writes temporary files to disk for ffmpeg to operate on.
+    """
+    if not shutil.which("ffmpeg"):
+        print("WARNING: ffmpeg not found on PATH; skipping compression")
+        return input_bytes
+
+    in_path = None
+    out_path = None
+    try:
+        # Choose input suffix from original filename if available
+        suffix = f".{target_ext}"
+        if original_filename:
+            try:
+                orig_suffix = Path(original_filename).suffix
+                if orig_suffix:
+                    suffix = orig_suffix
+            except Exception:
+                pass
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as in_f:
+            in_f.write(input_bytes)
+            in_path = in_f.name
+
+        fd, out_path = tempfile.mkstemp(suffix=f".{target_ext}")
+        # close the low-level fd; we'll open by name later
+        try:
+            os.close(fd)
+        except Exception:
+            pass
+
+        # Basic ffmpeg compression settings: re-encode with libx264 and moderate CRF.
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-i",
+            in_path,
+            "-vcodec",
+            "libx264",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "28",
+            "-acodec",
+            "aac",
+            "-b:a",
+            "96k",
+            "-movflags",
+            "+faststart",
+            out_path,
+        ]
+
+        # Run ffmpeg (capture output to avoid noisy logs)
+        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        with open(out_path, "rb") as f:
+            out_bytes = f.read()
+
+        # If compression produced a (reasonably) smaller file, return it; otherwise return original
+        if len(out_bytes) < len(input_bytes) or len(out_bytes) > 0:
+            return out_bytes
+        return input_bytes
+    except Exception as e:
+        print(f"WARNING: video compression failed: {e}")
+        return input_bytes
+    finally:
+        try:
+            if in_path and os.path.exists(in_path):
+                os.remove(in_path)
+        except Exception:
+            pass
+        try:
+            if out_path and os.path.exists(out_path):
+                os.remove(out_path)
+        except Exception:
+            pass
 
 
 app = FastAPI(title="Agent Backend", version="0.1.0")
@@ -100,12 +186,23 @@ async def run_agent(
 
         if video:
             video_bytes = await video.read()
+
+            # Try to compress the video bytes in a thread to avoid blocking the event loop
+            try:
+                compressed_bytes = await asyncio.to_thread(
+                    compress_video_bytes, video_bytes, getattr(video, "filename", None), "mp4"
+                )
+            except Exception as e:
+                print(f"WARNING: compression thread failed: {e}")
+                compressed_bytes = video_bytes
+
             # Force video/mp4 for MP4 files, as content_type may default to octet-stream
             if video.filename and video.filename.lower().endswith(".mp4"):
                 mime_type = "video/mp4"
             else:
                 mime_type = video.content_type or "video/mp4"
-            base64_data = base64.b64encode(video_bytes).decode("utf-8")
+
+            base64_data = base64.b64encode(compressed_bytes).decode("utf-8")
             file_data = types.Blob(mime_type=mime_type, data=base64_data)
             parts.append(types.Part(inline_data=file_data))
 

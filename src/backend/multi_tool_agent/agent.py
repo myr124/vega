@@ -27,7 +27,7 @@ summarize_tool = AgentTool(agent=summarizer_agent)
 # --- Sub Agent 1: Transcriber ---
 transcriber_agent = LlmAgent(
     name="VideoTranscriber",
-    model="gemini-2.0-flash-lite",
+    model="gemini-2.5-flash-lite",
     instruction=load_instruction_from_file("./instructions/video_transcriber.txt"),
     description="Transcribes audio from video files into clean, formatted text",
     tools=[summarize_tool],
