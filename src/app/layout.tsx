@@ -49,16 +49,25 @@ export default function RootLayout({
                 >
                     <div className="text-2xl font-bold text-foreground mr-8">VEGA</div>
                     <div className="flex-1 flex justify-center">
+                        <NavigationMenu className="flex justify-center w-full">
+                            <NavigationMenuList className="flex space-x-8 justify-center w-full">
+                                <NavigationMenuItem>
+                                    <NavigationMenuLink className="text-foreground hover:text-primary text-lg">Home</NavigationMenuLink>
+                                </NavigationMenuItem>
+                                <NavigationMenuItem>
+                                    <NavigationMenuLink className="text-foreground hover:text-primary text-lg">About</NavigationMenuLink>
+                                </NavigationMenuItem>
+                                <NavigationMenuItem>
+                                    <NavigationMenuLink className="text-foreground hover:text-primary text-lg">Pricing</NavigationMenuLink>
+                                </NavigationMenuItem>
+                            </NavigationMenuList>
+                        </NavigationMenu>
+                    </div>
+                    <div className="flex items-center justify-end min-w-[120px]">
                         <NavigationMenu className="flex">
-                            <NavigationMenuList className="flex space-x-8">
+                            <NavigationMenuList className="flex">
                                 <NavigationMenuItem>
-                                    <NavigationMenuLink className="text-foreground hover:text-primary">Home</NavigationMenuLink>
-                                </NavigationMenuItem>
-                                <NavigationMenuItem>
-                                    <NavigationMenuLink className="text-foreground hover:text-primary">About</NavigationMenuLink>
-                                </NavigationMenuItem>
-                                <NavigationMenuItem>
-                                    <NavigationMenuLink className="text-foreground hover:text-primary">Pricing</NavigationMenuLink>
+                                    <NavigationMenuLink className="text-foreground hover:text-primary text-lg">Account</NavigationMenuLink>
                                 </NavigationMenuItem>
                             </NavigationMenuList>
                         </NavigationMenu>

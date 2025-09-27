@@ -117,6 +117,6 @@
   }
   body {
     @apply text-foreground;
-    background: radial-gradient(farthest-corner at 40px 40px, #3D348B 5%, #191716 100%, #191716 100%);
+    background: radial-gradient(56.01% 60.8% at 66.98% 64.35%, #3D348B 0%, #191716 99.99%);
   }
 }

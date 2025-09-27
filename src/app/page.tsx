@@ -55,12 +55,10 @@ export default function Home() {
                     <div className="flex">
                         <input
                             type="text"
-                            id="prompt"
-                            value={prompt}
-                            onChange={(e) => setPrompt(e.target.value)}
-                            // change this to make it not a text input. make it a file input that accepts video files
+                            id="file-display"
+                            value={video ? video.name : "No File Chosen. MAX 1GB .mov .mp4 only"}
+                            readOnly
                             className="flex-1 px-4 py-[1.75rem] bg-background border-r border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                            placeholder="No File Chosen. MAX 1GB .mov .mp4 only"
                         />
                         <input
                             type="file"
@@ -79,23 +77,18 @@ export default function Home() {
                         {loading ? (
                             <>
                                 <div className="inline-block w-4 h-4 border-2 border-primary-foreground border-t-primary rounded-full animate-spin mr-2"></div>
-                                Searching...
+                                Simulating..
                             </>
                         ) : (
-                            "Search"
+                            "Start Simulate"
                         )}
                     </Button>
                 </div>
-                {video && (
-                    <p className="text-sm text-muted-foreground mt-2 w-full max-w-2xl">Selected: {video.name} (Max 1GB)</p>
-                )}
                 {response && (
                     <div className="mt-4 p-3 bg-muted rounded-md border border-border w-full max-w-2xl">
                         <p className="text-sm text-foreground">{response}</p>
                     </div>
                 )}
-
-
             </div>
         </main>
     );
