@@ -16,7 +16,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-
 const exo_2 = Exo_2({
     variable: "--font-exo-2",
     subsets: ["latin"],

@@ -7,6 +7,7 @@ import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
+import AnimatedBackground from "@/components/AnimatedBackground";
 
 
 
@@ -52,7 +53,9 @@ export default function Home() {
         }
     };
     return (
-        <main className="flex min-h-screen flex-col items-center justify-center p-8 text-foreground">
+        <>
+            <AnimatedBackground />
+            <main className="flex min-h-screen flex-col items-center justify-center p-8 text-foreground">
             <div className="flex flex-col items-center" style={{ marginTop: '-6rem', marginBottom: '1.5rem' }}>
                 <h1 className="text-7xl font-extrabold uppercase text-center leading-[1.05] mb-0" style={{ letterSpacing: '-0.03em' }}>ENGAGE AUDIENCES EASILY</h1>
                 <p className="text-2xl text-center text-muted-foreground leading-[1.05] mt-0 mb-0" style={{ letterSpacing: '-0.03em' }}>AI Agents that mimic real-world results</p>
@@ -110,5 +113,6 @@ export default function Home() {
                 )}
             </div>
         </main>
+        </>
     );
 }
