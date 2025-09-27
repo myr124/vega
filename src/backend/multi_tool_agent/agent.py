@@ -24,7 +24,7 @@ from .util import load_instruction_from_file
 scriptwriter_agent = LlmAgent(
     name="ShortsScriptwriter",
     model="gemini-2.0-flash-001",
-    instruction=load_instruction_from_file("scriptwriter_instruction.txt"),
+    instruction=load_instruction_from_file("./instructions/scriptwriter_instruction.txt"),
     tools=[google_search],
     output_key="generated_script",  # Save result to state
 )
@@ -33,7 +33,7 @@ scriptwriter_agent = LlmAgent(
 visualizer_agent = LlmAgent(
     name="ShortsVisualizer",
     model="gemini-2.0-flash-001",
-    instruction=load_instruction_from_file("visualizer_instruction.txt"),
+    instruction=load_instruction_from_file("./instructions/visualizer_instruction.txt"),
     description="Generates visual concepts based on a provided script.",
     output_key="visual_concepts",  # Save result to state
 )
@@ -53,7 +53,7 @@ formatter_agent = LlmAgent(
 youtube_shorts_agent = LlmAgent(
     name="youtube_shorts_agent",
     model="gemini-2.0-flash-001",
-    instruction=load_instruction_from_file("shorts_agent_instruction.txt"),
+    instruction=load_instruction_from_file("./instructions/shorts_agent_instruction.txt"),
     description="You are an agent that can write scripts, visuals and format youtube short videos. You have subagents that can do this",
     tools=[
         AgentTool(scriptwriter_agent),
