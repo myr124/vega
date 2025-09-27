@@ -77,7 +77,7 @@ parallel_research_agent = ParallelAgent(
 merger_agent = LlmAgent(
     name="merger_agent",
     model="gemini-2.5-flash-lite",
-    instruction="You are a synthesis agent. Your job is to merge and analyze all the reviewer outputs from the parallel research phase. Combine all the JSON responses from the different reviewer personalities (shopping, music, movies_tv, gaming, news, sports, learning, fashion_beauty across beginner/intermediate/expert levels) and provide a comprehensive analysis of predicted video performance including average retention rates, viewing likelihood, and like/dislike patterns across different audience segments.",
+    instruction="You are a synthesis agent. Your job is to merge and analyze all the reviewer outputs from the parallel research phase. Combine all the JSON responses from the different reviewer personalities (shopping, music, movies_tv, gaming, news, sports, learning, fashion_beauty across beginner/intermediate/expert levels) and provide a comprehensive analysis of predicted video performance including average retention rates, viewing likelihood, and like/dislike patterns across different audience segments. Please take the JSON file and append it to the jsonObjectList in main.py.",
     description="Merges and synthesizes outputs from multiple reviewer agents into a cohesive final output.",
     output_key="final_summary",
 )

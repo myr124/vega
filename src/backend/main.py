@@ -137,6 +137,38 @@ def compress_video_bytes(
             pass
 
 
+def _extract_json_objects_from_text(text: str) -> list:
+    """Attempt to extract any JSON objects/arrays embedded in a text blob.
+
+    Uses json.JSONDecoder.raw_decode to robustly find JSON starting at any position.
+    Returns a list of parsed Python objects.
+    """
+    objs = []
+    try:
+        decoder = json.JSONDecoder()
+        idx = 0
+        L = len(text or "")
+        while idx < L:
+            # find next possible JSON start
+            next_start = None
+            for i in range(idx, L):
+                if text[i] in "{[":
+                    next_start = i
+                    break
+            if next_start is None:
+                break
+            try:
+                obj, end = decoder.raw_decode(text[next_start:])
+                objs.append(obj)
+                idx = next_start + end
+            except Exception:
+                # Move forward and keep searching
+                idx = next_start + 1
+    except Exception:
+        pass
+    return objs
+
+
 app = FastAPI(title="Agent Backend", version="0.1.0")
 
 # CORS configuration
@@ -265,6 +297,44 @@ async def run_agent(
         if result is None:
             result = "No response generated"
 
+        # --- New: extract JSON objects produced by enjoyer/reviewer agents and persist them ---
+        try:
+            # Gather texts from all event parts to search for JSON
+            all_text = "\n".join(
+                p.text for e in events if getattr(e, "content", None) for p in e.content.parts if getattr(p, "text", None)
+            )
+            found = _extract_json_objects_from_text(all_text)
+            if found:
+                # Ensure data dir exists
+                json_file = Path(__file__).parent / "data" / "json_objects.json"
+                json_file.parent.mkdir(parents=True, exist_ok=True)
+                # Load existing list if present
+                try:
+                    if json_file.exists():
+                        with open(json_file, "r", encoding="utf-8") as jf:
+                            existing = json.load(jf)
+                            if isinstance(existing, list):
+                                jsonObjectList.extend(existing)
+                except Exception as e:
+                    print(f"WARNING: failed to load existing json objects: {e}")
+
+                # Append and deduplicate simple by string representation
+                for obj in found:
+                    try:
+                        jsonObjectList.append(obj)
+                    except Exception:
+                        pass
+
+                # Persist the list
+                try:
+                    with open(json_file, "w", encoding="utf-8") as jf:
+                        json.dump(jsonObjectList, jf, ensure_ascii=False, indent=2)
+                    print(f"Appended {len(found)} json object(s) to {json_file}")
+                except Exception as e:
+                    print(f"WARNING: failed to persist json object list: {e}")
+        except Exception as e:
+            print(f"WARNING: json extraction failed: {e}")
+
         # Ensure JSON-serializable
         safe_result = jsonable_encoder(result, custom_encoder={set: list})
 
@@ -302,3 +372,8 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run("main:app", host="localhost", port=2000, reload=True)
+
+
+jsonObjectList = []
+inputJsonObject = {}
+
