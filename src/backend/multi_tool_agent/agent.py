@@ -14,6 +14,15 @@
 
 # Shows how to call all the sub-agents using the LLM's reasoning ability. Run this with "adk run" or "adk web"
 
+import os
+
+# Load environment variables
+try:
+    from dotenv import load_dotenv
+    load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
+except Exception:
+    pass
+
 from google.adk.agents import LlmAgent
 from google.adk.tools import google_search
 from google.adk.tools.agent_tool import AgentTool
@@ -21,47 +30,23 @@ from google.adk.tools.agent_tool import AgentTool
 from .util import load_instruction_from_file
 
 # --- Sub Agent 1: Scriptwriter ---
-scriptwriter_agent = LlmAgent(
-    name="ShortsScriptwriter",
-    model="gemini-2.0-flash-001",
-    instruction=load_instruction_from_file("./instructions/scriptwriter_instruction.txt"),
-    tools=[google_search],
-    output_key="generated_script",  # Save result to state
+transcriber_agent = LlmAgent(
+    name="VideoTranscriber",
+    model="gemini-2.5-flash",
+    instruction=load_instruction_from_file("./instructions/video_transcriber.txt"),
+    description="Transcribes audio from video files into clean, formatted text",
+    output_key="video_transcript",  # Save result to state
 )
-
-# --- Sub Agent 2: Visualizer ---
-visualizer_agent = LlmAgent(
-    name="ShortsVisualizer",
-    model="gemini-2.0-flash-001",
-    instruction=load_instruction_from_file("./instructions/visualizer_instruction.txt"),
-    description="Generates visual concepts based on a provided script.",
-    output_key="visual_concepts",  # Save result to state
-)
-
-# --- Sub Agent 3: Formatter ---
-# This agent would read both state keys and combine into the final Markdown
-formatter_agent = LlmAgent(
-    name="ConceptFormatter",
-    model="gemini-2.0-flash-001",
-    instruction="""Combine the script from state['generated_script'] and the visual concepts from state['visual_concepts'] into the final Markdown format requested previously (Hook, Script & Visuals table, Visual Notes, CTA).""",
-    description="Formats the final Short concept.",
-    output_key="final_short_concept",
-)
-
 
 # --- Llm Agent Workflow ---
-youtube_shorts_agent = LlmAgent(
-    name="youtube_shorts_agent",
-    model="gemini-2.0-flash-001",
-    instruction=load_instruction_from_file("./instructions/shorts_agent_instruction.txt"),
-    description="You are an agent that can write scripts, visuals and format youtube short videos. You have subagents that can do this",
-    tools=[
-        AgentTool(scriptwriter_agent),
-        AgentTool(visualizer_agent),
-        AgentTool(formatter_agent),
-    ],
+youtube_agent = LlmAgent(
+    name="youtube_agent",
+    model="gemini-2.5-flash",
+    instruction=load_instruction_from_file("./instructions/youtube_instruction.txt"),
+    description="Agent to create YouTube Shorts from video files using sub-agents.",
+    sub_agents=[transcriber_agent]
 )
 
 # --- Root Agent for the Runner ---
 # The runner will now execute the workflow
-root_agent = youtube_shorts_agent
+root_agent = youtube_agent
