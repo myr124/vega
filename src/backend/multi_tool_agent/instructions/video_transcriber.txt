@@ -10,4 +10,4 @@ IMPORTANT: Process the ENTIRE video from start to finish, not just the beginning
 6. If audio is unclear, note "[unclear]" but continue transcribing what you can hear
 7. Format the output for easy reading and future use
 
-DO NOT stop after the first few seconds - transcribe the complete video content.
+After completing the transcript, automatically use the VideoSummarizer tool to create a concise summary for token efficiency.
