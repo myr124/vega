@@ -43,4 +43,5 @@ next-env.d.ts
 .python-version
 __pycache__/
 
-#
+#sessions
+src/backend/data/*

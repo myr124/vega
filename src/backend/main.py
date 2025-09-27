@@ -12,6 +12,13 @@ from google.adk.runners import Runner, types
 from google.adk.sessions import InMemorySessionService
 
 import base64
+import json
+import datetime
+import tempfile
+import subprocess
+import shutil
+import asyncio
+import httpx
 
 
 # Load environment variables
@@ -26,6 +33,7 @@ if env_path.exists():
 class RunRequest(BaseModel):
     prompt: Optional[str] = Form(None)
     video: Optional[UploadFile] = File(None)
+    video_uri: Optional[str] = Form(None)
 
 
 class RunResponse(BaseModel):
@@ -43,6 +51,90 @@ def _extract_result(raw: Any) -> Any:
     elif hasattr(raw, "result") or hasattr(raw, "output"):
         return getattr(raw, "result", getattr(raw, "output", raw))
     return raw
+
+
+def compress_video_bytes(
+    input_bytes: bytes, original_filename: Optional[str] = None, target_ext: str = "mp4"
+) -> bytes:
+    """
+    Compress video bytes using the system ffmpeg CLI.
+
+    - If ffmpeg is not installed or compression fails, returns the original bytes.
+    - Writes temporary files to disk for ffmpeg to operate on.
+    """
+    if not shutil.which("ffmpeg"):
+        print("WARNING: ffmpeg not found on PATH; skipping compression")
+        return input_bytes
+
+    in_path = None
+    out_path = None
+    try:
+        # Choose input suffix from original filename if available
+        suffix = f".{target_ext}"
+        if original_filename:
+            try:
+                orig_suffix = Path(original_filename).suffix
+                if orig_suffix:
+                    suffix = orig_suffix
+            except Exception:
+                pass
+
+        with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as in_f:
+            in_f.write(input_bytes)
+            in_path = in_f.name
+
+        fd, out_path = tempfile.mkstemp(suffix=f".{target_ext}")
+        # close the low-level fd; we'll open by name later
+        try:
+            os.close(fd)
+        except Exception:
+            pass
+
+        # Basic ffmpeg compression settings: re-encode with libx264 and moderate CRF.
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-i",
+            in_path,
+            "-vcodec",
+            "libx264",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "28",
+            "-acodec",
+            "aac",
+            "-b:a",
+            "96k",
+            "-movflags",
+            "+faststart",
+            out_path,
+        ]
+
+        # Run ffmpeg (capture output to avoid noisy logs)
+        subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+
+        with open(out_path, "rb") as f:
+            out_bytes = f.read()
+
+        # If compression produced a (reasonably) smaller file, return it; otherwise return original
+        if len(out_bytes) < len(input_bytes) or len(out_bytes) > 0:
+            return out_bytes
+        return input_bytes
+    except Exception as e:
+        print(f"WARNING: video compression failed: {e}")
+        return input_bytes
+    finally:
+        try:
+            if in_path and os.path.exists(in_path):
+                os.remove(in_path)
+        except Exception:
+            pass
+        try:
+            if out_path and os.path.exists(out_path):
+                os.remove(out_path)
+        except Exception:
+            pass
 
 
 app = FastAPI(title="Agent Backend", version="0.1.0")
@@ -73,11 +165,16 @@ def health() -> Dict[str, str]:
 
 @app.post("/agent/run", response_model=RunResponse)
 async def run_agent(
-    prompt: Optional[str] = Form(None), video: Optional[UploadFile] = File(None)
+    prompt: Optional[str] = Form(None),
+    video: Optional[UploadFile] = File(None),
+    video_uri: Optional[str] = Form(None),
 ) -> RunResponse:
-    if not prompt and not video:
+    print(
+        f"[run_agent] Received prompt={bool(prompt)} video_present={bool(video)} video_uri_present={bool(video_uri)}"
+    )
+    if not prompt and not video and not video_uri:
         raise HTTPException(
-            status_code=400, detail="Either prompt or video is required"
+            status_code=400, detail="Either prompt, video, or video_uri is required"
         )
 
     try:
@@ -96,15 +193,59 @@ async def run_agent(
         if prompt:
             parts.append(types.Part(text=prompt.strip()))
 
-        if video:
+        video_bytes: Optional[bytes] = None
+        mime_type: Optional[str] = None
+        original_filename: Optional[str] = (
+            getattr(video, "filename", None) if video else None
+        )
+
+        if video_uri:
+            try:
+                async with httpx.AsyncClient(
+                    follow_redirects=True, timeout=60.0
+                ) as client:
+                    resp = await client.get(video_uri)
+                    resp.raise_for_status()
+                    video_bytes = resp.content
+                    ct = resp.headers.get("Content-Type")
+                    if ct:
+                        mime_type = ct
+                    print(
+                        f"[run_agent] Fetched video from URI; bytes={len(video_bytes) if video_bytes else 0} mime={mime_type}"
+                    )
+            except Exception as e:
+                print(f"WARNING: failed to fetch video from URI: {e}")
+                video_bytes = None
+
+            if not mime_type:
+                if isinstance(video_uri, str) and video_uri.lower().endswith(".mp4"):
+                    mime_type = "video/mp4"
+                else:
+                    mime_type = "application/octet-stream"
+
+        elif video:
             video_bytes = await video.read()
             # Force video/mp4 for MP4 files, as content_type may default to octet-stream
             if video.filename and video.filename.lower().endswith(".mp4"):
                 mime_type = "video/mp4"
             else:
                 mime_type = video.content_type or "video/mp4"
-            base64_data = base64.b64encode(video_bytes).decode("utf-8")
-            file_data = types.Blob(mime_type=mime_type, data=base64_data)
+            print(
+                f"[run_agent] Received video file upload; bytes={len(video_bytes) if video_bytes else 0} mime={mime_type}"
+            )
+
+        if video_bytes:
+            # Try to compress the video bytes in a thread to avoid blocking the event loop
+            try:
+                compressed_bytes = await asyncio.to_thread(
+                    compress_video_bytes, video_bytes, original_filename, "mp4"
+                )
+            except Exception as e:
+                print(f"WARNING: compression thread failed: {e}")
+                compressed_bytes = video_bytes
+
+            base64_data = base64.b64encode(compressed_bytes).decode("utf-8")
+            file_data = types.Blob(mime_type=mime_type or "video/mp4", data=base64_data)
             parts.append(types.Part(inline_data=file_data))
 
         if not parts:
@@ -126,6 +267,28 @@ async def run_agent(
 
         # Ensure JSON-serializable
         safe_result = jsonable_encoder(result, custom_encoder={set: list})
+
+        # Persist the result to a JSON file under src/backend/data
+        try:
+            data_dir = Path(__file__).parent / "data"
+            data_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = datetime.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+            filename = f"{timestamp}_{session_id}.json"
+            filepath = data_dir / filename
+            payload = {
+                "meta": {
+                    "app_name": "vega-agent",
+                    "user_id": user_id,
+                    "session_id": session_id,
+                    "created_at": datetime.datetime.utcnow().isoformat() + "Z",
+                },
+                "result": safe_result,
+            }
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump(payload, f, ensure_ascii=False, indent=2)
+            print(f"Saved run result to {filepath}")
+        except Exception as e:
+            print(f"WARNING: failed to write run result to file: {e}")
 
         return RunResponse(
             ok=True,

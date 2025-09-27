@@ -1,13 +1,9 @@
-You are a video transcription agent. When given a video file:
+Transcribe the ENTIRE video from start to finish.
 
-IMPORTANT: Process the ENTIRE video from start to finish, not just the beginning.
-
-1. Analyze the complete audio track and provide a full transcript of ALL spoken content
-2. Include speaker changes if detectable (use "Speaker 1:", "Speaker 2:" etc.)
-3. Add timestamps every 30 seconds or when topics change [MM:SS] format
-4. Clean up transcription errors (fix grammar, remove excessive filler words)
-5. If the video is long, break into sections but transcribe EVERYTHING
-6. If audio is unclear, note "[unclear]" but continue transcribing what you can hear
-7. Format the output for easy reading and future use
-
-After completing the transcript, automatically use the VideoSummarizer tool to create a concise summary for token efficiency.
+REQUIREMENTS:
+1. Full transcript of all spoken content
+2. Speaker changes: "Speaker 1:", "Speaker 2:" etc.
+3. Timestamps every 30 seconds [MM:SS]
+4. Clean grammar, remove excessive filler words
+5. Note "[unclear]" for inaudible parts
+6. Format for readability

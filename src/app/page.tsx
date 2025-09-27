@@ -3,9 +3,10 @@
 
 
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
+import { createBrowserClient } from "@supabase/ssr";
 
 
 
@@ -14,6 +15,8 @@ export default function Home() {
     const [video, setVideo] = useState<File | null>(null);
     const [response, setResponse] = useState("");
     const [loading, setLoading] = useState(false);
+    const [uploading, setUploading] = useState(false);
+    const [videoUri, setVideoUri] = useState<string | null>(null);
     // ...existing code...
     const handleSubmit = async () => {
         setLoading(true);
@@ -23,7 +26,10 @@ export default function Home() {
         if (prompt) {
             formData.append("prompt", prompt);
         }
-        if (video) {
+        if (videoUri) {
+            formData.append("video_uri", videoUri);
+        } else if (video) {
+            // Fallback to direct file upload if URI isn't ready
             formData.append("video", video, video.name);
         }
 
@@ -86,7 +92,7 @@ export default function Home() {
                     </div>
                 </div>
                 <div className="flex justify-center">
-                    <Button onClick={handleSubmit} disabled={loading} className="bg-primary text-primary-foreground hover:bg-primary/90 py-[1.75rem] px-8 whitespace-nowrap">
+                    <Button onClick={handleSubmit} disabled={loading || uploading || (!prompt && !videoUri && !video)} className="bg-primary text-primary-foreground hover:bg-primary/90 py-[1.75rem] px-8 whitespace-nowrap">
                         {loading ? (
                             <>
                                 <div className="inline-block w-4 h-4 border-2 border-primary-foreground border-t-primary rounded-full animate-spin mr-2"></div>
@@ -98,7 +104,7 @@ export default function Home() {
                     </Button>
                 </div>
                 {response && (
-                    <div className="mt-4 p-3 bg-muted rounded-md border border-border w-full max-w-2xl">
+                    <div className="mt-4 p-3 bg-muted rounded-md border border-border w-full max-w-2xl fade-in">
                         <p className="text-sm text-foreground">{response}</p>
                     </div>
                 )}
