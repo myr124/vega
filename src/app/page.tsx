@@ -48,17 +48,17 @@ export default function Home() {
 
     return (
         <main className="flex min-h-screen flex-col items-center justify-center p-8 text-foreground">
-            <h1 className="text-6xl font-bold uppercase text-center mb-4">ENGAGE AUDIENCES EASILY</h1>
-            <p className="text-2xl text-center mb-8 text-muted-foreground">AI agents that deliver real-world results</p>
-            <div className="w-full max-w-2xl">
-                <div className="bg-card rounded-lg border border-border overflow-hidden mb-4">
+            <h1 className="text-6xl font-bold uppercase text-center mb-4 fade-in">ENGAGE AUDIENCES EASILY</h1>
+            <p className="text-2xl text-center mb-8 text-muted-foreground fade-in">AI agents that deliver real-world results</p>
+            <div className="w-full max-w-2xl fade-in">
+                <div className="rounded-[20px] border-black shadow-[0_4px_4px_0_rgba(0,0,0,0.25)] overflow-hidden mb-4">
                     <div className="flex">
                         <input
                             type="text"
                             id="prompt"
                             value={prompt}
                             onChange={(e) => setPrompt(e.target.value)}
-                            className="flex-1 px-4 py-[1.75rem] bg-background border-r border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+                            className="flex-1 px-4 py-[1.75rem] bg-[#43253480] border-r border-border text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary opacity-70"
                             placeholder="Search for AI agents or enter your query..."
                         />
                         <input
@@ -81,7 +81,7 @@ export default function Home() {
                                 Searching...
                             </>
                         ) : (
-                            "Search"
+                            "Simulate"
                         )}
                     </Button>
                 </div>
@@ -89,7 +89,7 @@ export default function Home() {
                     <p className="text-sm text-muted-foreground mt-2 w-full max-w-2xl">Selected: {video.name} (Max 1GB)</p>
                 )}
                 {response && (
-                    <div className="mt-4 p-3 bg-muted rounded-md border border-border w-full max-w-2xl">
+                    <div className="mt-4 p-3 bg-muted rounded-md border border-border w-full max-w-2xl fade-in">
                         <p className="text-sm text-foreground">{response}</p>
                     </div>
                 )}

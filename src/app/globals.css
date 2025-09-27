@@ -83,7 +83,7 @@
   --card-foreground: #EFD6AC;
   --popover: oklch(0.25 0.1 170);
   --popover-foreground: #EFD6AC;
-  --primary: oklch(0.75 0.2 50); /* Orange for accents */
+  --primary: oklch(0.5661 0.1705 42.12); /* Orange for accents */
   --primary-foreground: oklch(0.15 0 0); /* Dark text on primary */
   --secondary: oklch(0.3 0.08 170);
   --secondary-foreground: #EFD6AC;
@@ -110,12 +110,41 @@
   --sidebar-ring: oklch(0.556 0 0);
 }
 
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+}
+
+.fade-in {
+  animation: fadeIn 0.9s ease-out forwards;
+}
+
+.fade-out {
+  animation: fadeOut 0.9s ease-in forwards;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
   body {
     @apply text-foreground;
-    background: radial-gradient(circle, #04151F 10%, #0A2A20 100%, #183A37 100%);
-  }
+background: radial-gradient(56.01% 60.8% at 66.98% 64.35%, #183A37 0%, #04151F 99.99%);}
 }
