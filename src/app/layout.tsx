@@ -12,6 +12,7 @@ import {
     NavigationMenuTrigger,
     NavigationMenuViewport,
 } from "@/components/ui/navigation-menu"
+import Link from "next/link";
 
 
 
@@ -51,15 +52,21 @@ export default function RootLayout({
                     <div className="flex-1 flex justify-center">
                         <NavigationMenu className="flex justify-center w-full">
                             <NavigationMenuList className="flex space-x-8 justify-center w-full">
-                                <NavigationMenuItem>
-                                    <NavigationMenuLink className="hover:text-primary text-2xl" style={{ color: "#E0E2DB" }}>Home</NavigationMenuLink>
-                                </NavigationMenuItem>
-                                <NavigationMenuItem>
-                                    <NavigationMenuLink className="hover:text-primary text-2xl" style={{ color: "#E0E2DB" }}>About</NavigationMenuLink>
-                                </NavigationMenuItem>
-                                <NavigationMenuItem>
-                                    <NavigationMenuLink className="hover:text-primary text-2xl" style={{ color: "#E0E2DB" }}>Pricing</NavigationMenuLink>
-                                </NavigationMenuItem>
+                                <Link href={"/"}>
+                                    <NavigationMenuItem>
+                                        <NavigationMenuLink className="hover:text-primary text-2xl" style={{ color: "#E0E2DB" }}>Home</NavigationMenuLink>
+                                    </NavigationMenuItem>
+                                </Link>
+                                <Link href={"/about"}>
+                                    <NavigationMenuItem>
+                                        <NavigationMenuLink className="hover:text-primary text-2xl" style={{ color: "#E0E2DB" }}>About</NavigationMenuLink>
+                                    </NavigationMenuItem>
+                                </Link>
+                                <Link href={"/pricing"}>
+                                    <NavigationMenuItem>
+                                        <NavigationMenuLink className="hover:text-primary text-2xl" style={{ color: "#E0E2DB" }}>Pricing</NavigationMenuLink>
+                                    </NavigationMenuItem>
+                                </Link>
                             </NavigationMenuList>
                         </NavigationMenu>
                     </div>
