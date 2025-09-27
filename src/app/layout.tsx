@@ -1,6 +1,18 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { Newsreader, Fraunces } from "next/font/google";
+import {
+    NavigationMenu,
+    NavigationMenuContent,
+    NavigationMenuIndicator,
+    NavigationMenuItem,
+    NavigationMenuLink,
+    NavigationMenuList,
+    NavigationMenuTrigger,
+    NavigationMenuViewport,
+} from "@/components/ui/navigation-menu"
+import Link from "next/link";
 
 const geistSans = Geist({
     variable: "--font-geist-sans",
@@ -11,6 +23,16 @@ const geistMono = Geist_Mono({
     variable: "--font-geist-mono",
     subsets: ["latin"],
 });
+
+const newsReader = Newsreader({
+    variable: "--font-newsreader",
+    subsets: ["latin"]
+})
+
+const fraunces = Fraunces({
+    variable: "--font-fraunces",
+    subsets: ["latin"]
+})
 
 export const metadata: Metadata = {
     title: "Vega",
@@ -23,10 +45,32 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en">
-            <body
-                className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-            >
+        <html lang="en" className={`${newsReader.className}`}>
+            <body className="dark antialiased">
+                <nav className="flex items-center p-4 bg-transparent border-b border-border/50">
+                    <div className="text-2xl font-bold text-foreground mr-8">VEGA</div>
+                    <div className="flex-1 flex justify-center">
+                        <NavigationMenu className="flex">
+                            <NavigationMenuList className="flex space-x-8">
+                                <Link href="/">
+                                    <NavigationMenuItem>
+                                        <NavigationMenuLink className="text-foreground hover:text-primary">Home</NavigationMenuLink>
+                                    </NavigationMenuItem>
+                                </Link>
+                                <Link href="/about">
+                                    <NavigationMenuItem>
+                                        <NavigationMenuLink className="text-foreground hover:text-primary">About</NavigationMenuLink>
+                                    </NavigationMenuItem>
+                                </Link>
+                                <Link href="/pricing">
+                                    <NavigationMenuItem>
+                                        <NavigationMenuLink className="text-foreground hover:text-primary">Pricing</NavigationMenuLink>
+                                    </NavigationMenuItem>
+                                </Link>
+                            </NavigationMenuList>
+                        </NavigationMenu>
+                    </div>
+                </nav>
                 {children}
             </body>
         </html>
