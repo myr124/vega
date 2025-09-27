@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import AnimatedBackground from "@/components/AnimatedBackground";
+import LoadingScreen from "@/components/LoadingScreen";
 
 
 
@@ -18,10 +19,12 @@ export default function Home() {
     const [loading, setLoading] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [videoUri, setVideoUri] = useState<string | null>(null);
-    // ...existing code...
+    const [showLoadingScreen, setShowLoadingScreen] = useState(false);
+    
     const handleSubmit = async () => {
-        setLoading(true);
-        setResponse("");
+    setLoading(true);
+    setResponse("");
+    setShowLoadingScreen(true);
 
         const formData = new FormData();
         if (prompt) {
@@ -30,7 +33,7 @@ export default function Home() {
         if (videoUri) {
             formData.append("video_uri", videoUri);
         } else if (video) {
-            // Fallback to direct file upload if URI isn't ready
+
             formData.append("video", video, video.name);
         }
 
@@ -43,6 +46,7 @@ export default function Home() {
             const data = await res.json();
             if (data.ok) {
                 setResponse(data.result || "Success!");
+                setShowLoadingScreen(true);
             } else {
                 setResponse(`Error: ${data.error}`);
             }
@@ -50,8 +54,11 @@ export default function Home() {
             setResponse("Request failed.");
         } finally {
             setLoading(false);
+            setShowLoadingScreen(false);
         }
     };
+
+
     return (
         <>
             <AnimatedBackground />
@@ -111,6 +118,7 @@ export default function Home() {
                         <p className="text-sm text-foreground">{response}</p>
                     </div>
                 )}
+                {showLoadingScreen && <LoadingScreen />}
             </div>
         </main>
         </>
