@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import {Exo_2 } from "next/font/google";
 import "./globals.css";
 import { Newsreader } from "next/font/google";
 import {
@@ -13,18 +13,11 @@ import {
     NavigationMenuViewport,
 } from "@/components/ui/navigation-menu"
 
-
-
-const geistSans = Geist({
-    variable: "--font-geist-sans",
+const exo_2 = Exo_2({
+    variable: "--font-exo-2",
     subsets: ["latin"],
+    weight: ["400", "700"]
 });
-
-const geistMono = Geist_Mono({
-    variable: "--font-geist-mono",
-    subsets: ["latin"],
-});
-
 
 const newsReader = Newsreader({
     variable: "--font-newsreader",
@@ -41,7 +34,7 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html className={newsReader.className} lang="en">
+        <html className={exo_2.className} lang="en">
             <body className="dark">
                 <nav
                     className="flex items-center p-4 sticky top-0 z-50"
