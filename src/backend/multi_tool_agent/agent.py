@@ -16,7 +16,7 @@ from .util import load_instruction_from_file
 # --- Sub Agent 2: Summarizer ---
 summarizer_agent = LlmAgent(
     name="VideoSummarizer", 
-    model="gemini-2.5-flash",
+    model="gemini-2.5-flash-lite",
     instruction=load_instruction_from_file("./instructions/transcript_summarizer.txt"),
     description="Creates concise summaries from video transcripts to reduce token usage",
     output_key="video_summary",  # Save result to state
@@ -27,7 +27,7 @@ summarize_tool = AgentTool(agent=summarizer_agent)
 # --- Sub Agent 1: Transcriber ---
 transcriber_agent = LlmAgent(
     name="VideoTranscriber",
-    model="gemini-2.5-flash",
+    model="gemini-2.0-flash-lite",
     instruction=load_instruction_from_file("./instructions/video_transcriber.txt"),
     description="Transcribes audio from video files into clean, formatted text",
     tools=[summarize_tool],
@@ -39,14 +39,17 @@ research_agents = []
 
 # Map archetypes to their specialist categories
 archetype_to_category = {
-    "enjoyer": "entertainment",
-    "hater": "general", 
-    "learning": "learning",
-    "gaming": "gaming",
-    "music": "music"
+    "shopping": "Shopping",
+    "music": "Music",
+    "movies_tv": "Movies & Tv",
+    "gaming": "Gaming",
+    "news": "news",
+    "sports": "Sports",
+    "learning": "Learning",
+    "fashion_beauty": "Fashion & Beauty"
 }
 
-personality_archetypes = ["enjoyer", "hater", "learning", "gaming", "music"]  # Reduced from 11 to 5
+personality_archetypes = ["shopping", "music", "movies_tv", "gaming", "news", "sports", "learning", "fashion_beauty"]  # 8 categories
 interest_levels = ["beginner", "intermediate", "expert"]
 
 for archetype in personality_archetypes:
@@ -56,7 +59,7 @@ for archetype in personality_archetypes:
         instruction_text = load_instruction_from_file("./instructions/enjoyer_instruction.txt").replace("{level}", level).replace("{category}", category)
         agent = LlmAgent(
             name=agent_name,
-            model="gemini-2.5-flash",
+            model="gemini-2.5-flash-lite",
             instruction=instruction_text,
             description=f"{archetype} reviewer with {level} level perspective in {category}",
             output_key=f"{archetype}_{level}_review"
@@ -66,15 +69,15 @@ for archetype in personality_archetypes:
 # --- Parallel Research Agent (for reviewer personalities) ---
 parallel_research_agent = ParallelAgent(
     name="parallel_research_agent",
-    sub_agents=research_agents,  # 15 agents instead of 33
+    sub_agents=research_agents,  # 24 agents (8 categories × 3 skill levels)
     description="Runs multiple reviewer personalities in parallel"
 )
 
 # --- Merger Agent ---
 merger_agent = LlmAgent(
     name="merger_agent",
-    model="gemini-2.5-flash",
-    instruction="You are a synthesis agent. Your job is to merge and analyze all the reviewer outputs from the parallel research phase. Combine all the JSON responses from the different reviewer personalities (enjoyer, hater, learning, gaming, music across beginner/intermediate/expert levels) and provide a comprehensive analysis of predicted video performance including average retention rates, viewing likelihood, and like/dislike patterns across different audience segments.",
+    model="gemini-2.5-flash-lite",
+    instruction="You are a synthesis agent. Your job is to merge and analyze all the reviewer outputs from the parallel research phase. Combine all the JSON responses from the different reviewer personalities (shopping, music, movies_tv, gaming, news, sports, learning, fashion_beauty across beginner/intermediate/expert levels) and provide a comprehensive analysis of predicted video performance including average retention rates, viewing likelihood, and like/dislike patterns across different audience segments.",
     description="Merges and synthesizes outputs from multiple reviewer agents into a cohesive final output.",
     output_key="final_summary",
 )

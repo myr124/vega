@@ -13,7 +13,7 @@ CRITICAL REQUIREMENTS:
 INPUT: Read the full transcript from state['video_transcript']
 
 OUTPUT FORMAT:
-Provide a natural, conversational summary in 3-4 paragraphs without headers, bullet points, or special formatting. Write as if you're naturally explaining what the video was about to someone who hasn't seen it.
+Provide a natural, conversational summary as one continuous chunk without headers, bullet points, or artificial formatting. Write as if you're naturally explaining what the video was about to someone who hasn't seen it. Include: the video's main topic/theme, key content and specific details (names, products, games, subjects), important insights and takeaways, and any additional context about the video's approach or style if relevant.
 
 CRITICAL ACCURACY RULE:
 - ONLY include information that was explicitly stated in the transcript
@@ -21,15 +21,7 @@ CRITICAL ACCURACY RULE:
 - DO NOT give credit for ideas, facts, or insights that weren't actually presented
 - If something seems incomplete or missing context, leave it as presented rather than filling in gaps
 
-First paragraph: Briefly explain what the video is about and its main topic/theme.
-
-Second paragraph: Describe the key content and main points covered, including specific details like names, products, games, subjects, or topics that define the video's focus.
-
-Third paragraph: Highlight the most important insights, takeaways, or conclusions from the video.
-
-Optional fourth paragraph: Add any additional context about the video's approach, style, or unique aspects if relevant.
-
-Write in a flowing, natural style without artificial section breaks or formatting. Stay strictly faithful to what was actually said in the transcript.
+Write in a flowing, natural style. Stay strictly faithful to what was actually said in the transcript.
 
 OPTIMIZATION RULES:
 1. MAINTAIN ACTUAL CONTENT CONTEXT - Preserve what the video is really about based on category:
@@ -42,7 +34,7 @@ OPTIMIZATION RULES:
    • Sports: mention specific sports, teams, players, games, analysis, strategies covered
    • Fashion & Beauty: preserve brands, products, trends, techniques, tutorials, reviews discussed
    • Keep the authentic subject matter and specific details so other agents understand the exact content
-2. Use paragraph format for better context flow and readability
+2. Use natural flowing format for better context and readability
 3. Remove filler words, repetitive content, and tangents
 4. Use concise, clear language while maintaining full context
 5. Focus on content that would be useful for creating accurate YouTube Shorts
