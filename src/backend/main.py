@@ -12,6 +12,8 @@ from google.adk.runners import Runner, types
 from google.adk.sessions import InMemorySessionService
 
 import base64
+import json
+import datetime
 
 
 # Load environment variables
@@ -126,6 +128,28 @@ async def run_agent(
 
         # Ensure JSON-serializable
         safe_result = jsonable_encoder(result, custom_encoder={set: list})
+
+        # Persist the result to a JSON file under src/backend/data
+        try:
+            data_dir = Path(__file__).parent / "data"
+            data_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = datetime.datetime.utcnow().strftime("%Y%m%d_%H%M%S")
+            filename = f"{timestamp}_{session_id}.json"
+            filepath = data_dir / filename
+            payload = {
+                "meta": {
+                    "app_name": "vega-agent",
+                    "user_id": user_id,
+                    "session_id": session_id,
+                    "created_at": datetime.datetime.utcnow().isoformat() + "Z",
+                },
+                "result": safe_result,
+            }
+            with open(filepath, "w", encoding="utf-8") as f:
+                json.dump(payload, f, ensure_ascii=False, indent=2)
+            print(f"Saved run result to {filepath}")
+        except Exception as e:
+            print(f"WARNING: failed to write run result to file: {e}")
 
         return RunResponse(
             ok=True,
