@@ -44,21 +44,21 @@ export default function RootLayout({
         <html className={newsReader.className} lang="en">
             <body className="dark">
                 <nav
-                    className="flex items-center p-4 border-b border-border/50 sticky top-0 z-50"
-                    style={{ background: "var(--background)" }}
+                    className="flex items-center p-4 sticky top-0 z-50"
+                    style={{ background: "var(--background)", borderBottom: "1px solid #E0E2DB" }}
                 >
-                    <div className="text-2xl font-bold text-foreground mr-8">VEGA</div>
+                    <div className="text-4xl font-bold mr-8" style={{ color: "#E0E2DB" }}>VEGA</div>
                     <div className="flex-1 flex justify-center">
                         <NavigationMenu className="flex justify-center w-full">
                             <NavigationMenuList className="flex space-x-8 justify-center w-full">
                                 <NavigationMenuItem>
-                                    <NavigationMenuLink className="text-foreground hover:text-primary text-lg">Home</NavigationMenuLink>
+                                    <NavigationMenuLink className="hover:text-primary text-2xl" style={{ color: "#E0E2DB" }}>Home</NavigationMenuLink>
                                 </NavigationMenuItem>
                                 <NavigationMenuItem>
-                                    <NavigationMenuLink className="text-foreground hover:text-primary text-lg">About</NavigationMenuLink>
+                                    <NavigationMenuLink className="hover:text-primary text-2xl" style={{ color: "#E0E2DB" }}>About</NavigationMenuLink>
                                 </NavigationMenuItem>
                                 <NavigationMenuItem>
-                                    <NavigationMenuLink className="text-foreground hover:text-primary text-lg">Pricing</NavigationMenuLink>
+                                    <NavigationMenuLink className="hover:text-primary text-2xl" style={{ color: "#E0E2DB" }}>Pricing</NavigationMenuLink>
                                 </NavigationMenuItem>
                             </NavigationMenuList>
                         </NavigationMenu>
@@ -67,7 +67,7 @@ export default function RootLayout({
                         <NavigationMenu className="flex">
                             <NavigationMenuList className="flex">
                                 <NavigationMenuItem>
-                                    <NavigationMenuLink className="text-foreground hover:text-primary text-lg">Account</NavigationMenuLink>
+                                    <NavigationMenuLink className="hover:text-primary text-2xl" style={{ color: "#E0E2DB" }}>Account</NavigationMenuLink>
                                 </NavigationMenuItem>
                             </NavigationMenuList>
                         </NavigationMenu>

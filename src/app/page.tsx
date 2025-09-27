@@ -14,7 +14,7 @@ export default function Home() {
     const [video, setVideo] = useState<File | null>(null);
     const [response, setResponse] = useState("");
     const [loading, setLoading] = useState(false);
-
+    // ...existing code...
     const handleSubmit = async () => {
         setLoading(true);
         setResponse("");
@@ -45,38 +45,44 @@ export default function Home() {
             setLoading(false);
         }
     };
-
     return (
         <main className="flex min-h-screen flex-col items-center justify-center p-8 text-foreground">
-            <h1 className="text-6xl font-bold uppercase text-center mb-4">ENGAGE AUDIENCES EASILY</h1>
-            <p className="text-2xl text-center mb-8 text-muted-foreground">AI agents that deliver real-world results</p>
-            <div className="w-full max-w-2xl">
+            <div className="flex flex-col items-center" style={{ marginTop: '-6rem', marginBottom: '1.5rem' }}>
+                <h1 className="text-7xl font-extrabold uppercase text-center leading-[1.05] mb-0" style={{ letterSpacing: '-0.03em' }}>ENGAGE AUDIENCES EASILY</h1>
+                <p className="text-2xl text-center text-muted-foreground leading-[1.05] mt-0 mb-0" style={{ letterSpacing: '-0.03em' }}>AI Agents that mimic real-world results</p>
+            </div>
+            <div className="w-full max-w-3xl mt-16">
                 <div className="bg-card rounded-lg border border-border overflow-hidden mb-4">
                     <div
-                        className="flex"
+                        className="flex h-10"
                         style={{
                             opacity: 0.7,
                             background: "rgba(190, 183, 164, 0.50)",
+                            minWidth: '600px',
+                            maxWidth: '1000px',
+                            margin: '0 auto',
                         }}
                     >
-                        <input
-                            type="text"
-                            id="file-display"
-                            value={video ? video.name : "No File Chosen. MAX 1GB .mov .mp4 only"}
-                            readOnly
-                            className="flex-1 px-4 py-[1.75rem] bg-transparent border-r border-border placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary"
-                            style={{ color: "#E0E2DB" }}
-                        />
-                        <input
-                            type="file"
-                            id="video"
-                            accept="video/*"
-                            onChange={(e) => setVideo(e.target.files?.[0] || null)}
-                            className="hidden"
-                        />
-                        <label htmlFor="video" className="bg-primary text-primary-foreground hover:bg-primary/90 px-6 py-[1.75rem] cursor-pointer border-l border-border flex items-center whitespace-nowrap">
-                            <Upload></Upload>
-                        </label>
+                        <div className="flex flex-1 items-center">
+                            <input
+                                type="text"
+                                id="file-display"
+                                value={video ? video.name : "No File Chosen"}
+                                readOnly
+                                className="flex-1 px-4 py-2 bg-transparent border-r border-border placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary text-lg"
+                                style={{ color: "var(--primary-foreground)", height: '40px' }}
+                            />
+                            <input
+                                type="file"
+                                id="video"
+                                accept="video/*"
+                                onChange={(e) => setVideo(e.target.files?.[0] || null)}
+                                className="hidden"
+                            />
+                            <label htmlFor="video" className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 cursor-pointer border-l border-border flex items-center whitespace-nowrap h-10" style={{ fontSize: '1.1rem' }}>
+                                <Upload size={20} style={{ marginRight: 4 }} />
+                            </label>
+                        </div>
                     </div>
                 </div>
                 <div className="flex justify-center">
