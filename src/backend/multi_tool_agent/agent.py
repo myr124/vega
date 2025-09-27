@@ -16,7 +16,7 @@ from .util import load_instruction_from_file
 # --- Sub Agent 2: Summarizer ---
 summarizer_agent = LlmAgent(
     name="VideoSummarizer", 
-    model="gemini-2.5-flash-lite",
+    model="gemini-2.0-flash-lite",
     instruction=load_instruction_from_file("./instructions/transcript_summarizer.txt"),
     description="Creates concise summaries from video transcripts to reduce token usage",
     output_key="video_summary",  # Save result to state
@@ -27,7 +27,7 @@ summarize_tool = AgentTool(agent=summarizer_agent)
 # --- Sub Agent 1: Transcriber ---
 transcriber_agent = LlmAgent(
     name="VideoTranscriber",
-    model="gemini-2.5-flash-lite",
+    model="gemini-2.0-flash-lite",
     instruction=load_instruction_from_file("./instructions/video_transcriber.txt"),
     description="Transcribes audio from video files into clean, formatted text",
     tools=[summarize_tool],
@@ -59,7 +59,7 @@ for archetype in personality_archetypes:
         instruction_text = load_instruction_from_file("./instructions/enjoyer_instruction.txt").replace("{level}", level).replace("{category}", category)
         agent = LlmAgent(
             name=agent_name,
-            model="gemini-2.5-flash-lite",
+            model="gemini-2.0-flash-lite",
             instruction=instruction_text,
             description=f"{archetype} reviewer with {level} level perspective in {category}",
             output_key=f"{archetype}_{level}_review"
@@ -76,8 +76,8 @@ parallel_research_agent = ParallelAgent(
 # --- Merger Agent ---
 merger_agent = LlmAgent(
     name="merger_agent",
-    model="gemini-2.5-flash-lite",
-    instruction="You are a synthesis agent. Your job is to merge and analyze all the reviewer outputs from the parallel research phase. Combine all the JSON responses from the different reviewer personalities (shopping, music, movies_tv, gaming, news, sports, learning, fashion_beauty across beginner/intermediate/expert levels) and provide a comprehensive analysis of predicted video performance including average retention rates, viewing likelihood, and like/dislike patterns across different audience segments. Please take the JSON file and append it to the jsonObjectList in main.py.",
+    model="gemini-2.0-flash-lite",
+    instruction="You are a synthesis agent. Your job is to merge and analyze all the reviewer outputs from the parallel research phase. Combine all the JSON responses from the different reviewer personalities (shopping, music, movies_tv, gaming, news, sports, learning, fashion_beauty across beginner/intermediate/expert levels) and provide a comprehensive analysis of predicted video performance including average retention rates, viewing likelihood, and like/dislike patterns across different audience segments.",
     description="Merges and synthesizes outputs from multiple reviewer agents into a cohesive final output.",
     output_key="final_summary",
 )
