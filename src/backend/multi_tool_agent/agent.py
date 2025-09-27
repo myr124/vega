@@ -59,6 +59,109 @@ youtube_agent = LlmAgent(
     sub_agents=[transcriber_agent, summarizer_agent]  # Individual agents, not pipeline
 )
 
+interest_levels = ["beginner", "intermediate", "expert"]
+
+#archtype agents for different interests
+enjoyer_agent = LlmAgent(
+    name = "enjoyer_agent",
+    model = "gemini-2.5-flash",
+    instruction=load_instruction_from_file("./instructions/enjoyer_instruction.txt"),
+    description="An archtype agent that enjoys any of the 9 categories by level",
+)
+
+shopping_agent = LlmAgent(
+    name = "shopping_agent",
+    model = "gemini-2.5-flash",
+    instruction=load_instruction_from_file("./instructions/shopping_instruction.txt"),
+    description="An agent that helps with shopping by level",
+)
+
+music_agent = LlmAgent(
+    name = "music_agent",
+    model = "gemini-2.5-flash",
+    instruction=load_instruction_from_file("./instructions/music_instruction.txt"),
+    description="An agent that helps with music by level",
+)
+
+movies_tv_agent = LlmAgent(
+    name = "music_tv_agent",
+    model = "gemini-2.5-flash",
+    instruction=load_instruction_from_file("./instructions/movies&TV_instruction.txt"),
+    description="An agent that helps with music and TV by level",
+)
+
+gaming_agent = LlmAgent(
+    name = "gaming_agent",
+    model = "gemini-2.5-flash",
+    instruction=load_instruction_from_file("./instructions/gaming_instruction.txt"),
+    description="An agent that helps with gaming by level",
+)
+
+news_agent = LlmAgent(
+    name = "news_agent",
+    model = "gemini-2.5-flash",
+    instruction=load_instruction_from_file("./instructions/news_instruction.txt"),
+    description="An agent that helps with news by level",
+)
+
+sports_agent = LlmAgent(
+    name = "sports_agent",
+    model = "gemini-2.5-flash",
+    instruction=load_instruction_from_file("./instructions/sports_instruction.txt"),
+    description="An agent that helps with sports by level",
+)
+
+learning_agent = LlmAgent(
+    name = "learning_agent",
+    model = "gemini-2.5-flash",
+    instruction=load_instruction_from_file("./instructions/learning_instruction.txt"),
+    description="An agent that helps with learning by level",
+)
+
+course_agent = LlmAgent(
+    name = "course_agent",
+    model = "gemini-2.5-flash",
+    instruction=load_instruction_from_file("./instructions/course_instruction.txt"),
+    description="An agent that helps with courses",
+)
+
+fashionBeauty_agent = LlmAgent(
+    name = "fashionBeauty_agent",
+    model = "gemini-2.5-flash",
+    instruction=load_instruction_from_file("./instructions/fashionBeauty_instruction.txt"),
+    description="An agent that helps with fashion and beauty by level",
+)
+
+hater_agent = LlmAgent(
+    name = "hater_agent",
+    model = "gemini-2.5-flash",
+    instruction=load_instruction_from_file("./instructions/hater_instruction.txt"),
+    description="An agent that hates everything",
+)
+
+agents: list[LlmAgent] = [
+    enjoyer_agent,
+    shopping_agent,
+    music_agent,
+    movies_tv_agent,
+    gaming_agent,
+    news_agent,
+    sports_agent,
+    learning_agent,
+    course_agent,
+    fashionBeauty_agent,
+    hater_agent
+]
+
+def run_agents_by_interest():
+    for interest in interest_levels:
+        for agent in agents:
+            agent.instruction = agent.instruction.replace("{level}", interest)
+            agent.prompt = f"Here is the video transcript:. Please follow the instructions: {agent.instruction}"
+
+
+run_agents_by_interest()
+
 # --- Root Agent for the Runner ---
 # The runner will now execute the workflow
 root_agent = youtube_agent

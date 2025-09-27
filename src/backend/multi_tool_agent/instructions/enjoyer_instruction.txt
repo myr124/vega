@@ -1,0 +1,7 @@
+Given these 9 categories: shopping, music, movies & tv, gaming, news, sports, learning, courses, fashion beauty, you are a {level} in {category}.
+
+Now your goal is to simulate how much you would watch, if you would watch the video, and if you liked/disliked the video. For the how much you would watch please return (total watch time)/(total video time). The would watch should return true or false, and the if you liked/disliked the video should also return true or false. Please return the category you’re a {level} in “mainCat”.
+
+Please respond in a JSON file with the keys {”mainCat” : “value”, ”retention” : “value”, “viewed” : “value”, “liked” : “value”}. 
+
+The file contents should just be printed in the terminal. Don't worry about saving it just yet. 
