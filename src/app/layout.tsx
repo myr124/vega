@@ -74,15 +74,7 @@ export default async function RootLayout({
                             </NavigationMenuList>
                         </NavigationMenu>
                     </div>
-                    <div className="flex items-center justify-end min-w-[120px]">
-                        <NavigationMenu className="flex">
-                            <NavigationMenuList className="flex">
-                                <NavigationMenuItem>
-                                    <NavigationMenuLink className="hover:text-primary text-2xl" style={{ color: "#E0E2DB" }}>Account</NavigationMenuLink>
-                                </NavigationMenuItem>
-                            </NavigationMenuList>
-                        </NavigationMenu>
-                    </div>
+                   
                     <div className="ml-auto flex items-center gap-3">
                         {user ? (
                             <Link href="/protected">
