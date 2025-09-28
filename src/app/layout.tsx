@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import {Exo_2 } from "next/font/google";
+import { Exo_2 } from "next/font/google";
 import "./globals.css";
 import { Newsreader, Fraunces } from "next/font/google";
 import {
@@ -70,10 +70,10 @@ export default async function RootLayout({
                             </NavigationMenuList>
                         </NavigationMenu>
                     </div>
-                   
+
                     <div className="ml-auto flex items-center gap-3">
                         {user ? (
-                            <Link href="/protected">
+                            <Link href="/profile">
                                 <Avatar className="border-2 p-5 border-purple-400 hover:border-purple-300 transition-colors">
                                     <AvatarImage src={user.user_metadata?.avatar_url ?? undefined} alt={user.email ?? "User"} />
                                     <AvatarFallback>{user.email?.[0]?.toUpperCase() ?? "U"}</AvatarFallback>

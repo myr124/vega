@@ -426,37 +426,53 @@ export default function Results() {
                     See what some of our agent profiles think about your video
                 </h2>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                    {(personas.slice(0, 4)).map((p, idx) => (
-                        <Card key={idx} className="bg-black/60 border-purple-500/30">
-                            <CardHeader>
-                                <CardTitle className="text-purple-400 text-xl font-semibold">
-                                    {p?.name || p?.randomized_reviewer_name || `Persona ${idx + 1}`}
-                                </CardTitle>
-                                {(p?.vertical || p?.level) && (
-                                    <CardDescription className="text-white/60">
-                                        {[p.vertical, p.level].filter(Boolean).join(" • ")}
-                                    </CardDescription>
-                                )}
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-2 text-white/80">
-                                    <p>Viewing likelihood: <span className="text-white font-semibold">{pct(p?.predicted_like_probability)}</span></p>
-                                    <p>Retention: <span className="text-white font-semibold">{pct(p?.predicted_retention_rate)}</span></p>
-                                    {Array.isArray(p?.key_observations) && p!.key_observations!.length > 0 && (
-                                        <div className="text-white/70 mt-3">
-                                            <p className="text-sm font-semibold text-white/80 mb-1">Key observations:</p>
-                                            <ul className="list-disc list-inside space-y-1 text-sm">
-                                                {p!.key_observations!.slice(0, 4).map((obs, i) => (
-                                                    <li key={i}>{obs}</li>
-                                                ))}
-                                            </ul>
-                                        </div>
-                                    )}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 mb-8">
+                    {personas.map((p, idx) => {
+                        const name = p?.randomized_reviewer_name || p?.name || `Persona ${idx + 1}`;
+                        const likedProb = typeof (p as any)?.predicted_like_probability === "number" ? (p as any).predicted_like_probability : undefined;
+                        const retention = typeof (p as any)?.predicted_retention_rate === "number" ? (p as any).predicted_retention_rate : undefined;
+                        const liked = typeof likedProb === "number" ? likedProb >= 0.5 : undefined;
+                        const likedLabel = liked === undefined ? "—" : liked ? "Liked" : "Disliked";
+                        const likedClass = liked === undefined ? "text-white/70" : liked ? "text-green-400" : "text-red-400";
+                        const levelVertical = [(p as any)?.level, (p as any)?.vertical].filter(Boolean).join(" ");
+                        const comment = Array.isArray((p as any)?.key_observations) && (p as any).key_observations!.length > 0
+                            ? (p as any).key_observations![0]
+                            : "No comment";
+
+                        return (
+                            <div
+                                key={idx}
+                                className="rounded-lg border border-purple-500/30 bg-black/70 p-4 flex items-start gap-4 hover:border-purple-400/50 transition-colors"
+                            >
+                                {/* Avatar */}
+                                <div className="w-12 h-12 rounded-full bg-gray-300 shrink-0" />
+
+                                {/* Content */}
+                                <div className="flex-1 min-w-0">
+                                    <div className="text-white font-semibold text-lg tracking-wide">
+                                        <span className="uppercase">{name}</span>
+                                        <span className="mx-1"> - </span>
+                                        <span className={likedClass}>{likedLabel}</span>
+                                        <span className="mx-1">, </span>
+                                        <span className="text-white/80">{pct(retention)} watched</span>
+                                    </div>
+                                    <div className="italic text-white/70">
+                                        {levelVertical || "—"}
+                                    </div>
+
+                                    {/* Divider */}
+                                    <div className="mt-1 h-px w-full bg-white/20" />
+
+                                    {/* Comment */}
+                                    <div className="mt-3 text-white/80 text-base">
+                                        <span className="text-white/70">“</span>
+                                        <span>{comment}</span>
+                                        <span className="text-white/70">”</span>
+                                    </div>
                                 </div>
-                            </CardContent>
-                        </Card>
-                    ))}
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         </div>
