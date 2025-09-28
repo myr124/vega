@@ -16,7 +16,7 @@ from .util import load_instruction_from_file
 # --- Sub Agent 2: Summarizer ---
 summarizer_agent = LlmAgent(
     name="VideoSummarizer", 
-    model="gemini-2.5-flash-lite",
+    model="gemini-2.0-flash-lite",
     instruction=load_instruction_from_file("./instructions/transcript_summarizer.txt"),
     description="Creates concise summaries from video transcripts to reduce token usage",
     output_key="video_summary",  # Save result to state
@@ -27,7 +27,7 @@ summarize_tool = AgentTool(agent=summarizer_agent)
 # --- Sub Agent 1: Transcriber ---
 transcriber_agent = LlmAgent(
     name="VideoTranscriber",
-    model="gemini-2.5-flash-lite",
+    model="gemini-2.0-flash-lite",
     instruction=load_instruction_from_file("./instructions/video_transcriber.txt"),
     description="Transcribes audio from video files into clean, formatted text",
     tools=[summarize_tool],
@@ -59,7 +59,7 @@ for archetype in personality_archetypes:
         instruction_text = load_instruction_from_file("./instructions/enjoyer_instruction.txt").replace("{level}", level).replace("{category}", category)
         agent = LlmAgent(
             name=agent_name,
-            model="gemini-2.5-flash-lite",
+            model="gemini-2.0-flash-lite",
             instruction=instruction_text,
             description=f"{archetype} reviewer with {level} level perspective in {category}",
             output_key=f"{archetype}_{level}_review"

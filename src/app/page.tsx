@@ -8,9 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
 import { createBrowserClient } from "@supabase/ssr";
 import AnimatedBackground from "@/components/AnimatedBackground";
+import Image from "next/image";
 import LoadingScreen from "@/components/LoadingScreen";
-
-
 
 export default function Home() {
     const [prompt, setPrompt] = useState("");
@@ -64,8 +63,9 @@ export default function Home() {
             <AnimatedBackground />
             <main className="flex min-h-screen flex-col items-center justify-center p-8 text-foreground">
             <div className="flex flex-col items-center" style={{ marginTop: '-6rem', marginBottom: '1.5rem' }}>
-                <h1 className="text-7xl font-extrabold uppercase text-center leading-[1.05] mb-0" style={{ letterSpacing: '-0.03em' }}>ENGAGE AUDIENCES EASILY</h1>
-                <p className="text-2xl text-center text-muted-foreground leading-[1.05] mt-0 mb-0" style={{ letterSpacing: '-0.03em' }}>AI Agents that mimic real-world results</p>
+                <Image src="shellhacks.svg" height={450} width={450} alt="Vega Icon"/>
+                <h1 className="text-7xl font-extrabold uppercase text-center leading-[1.05] mb-0" style={{ letterSpacing: '-0.03em' }}>SHRINE BRIGHT, GO FAR</h1>
+                <p className="text-2xl text-center text-muted-foreground leading-[1.05] mt-0 mb-0" style={{ letterSpacing: '-0.03em' }}>AI Agents that mimic real-world viewers</p>
             </div>
             <div className="w-full max-w-3xl mt-16">
                 <div className="bg-card rounded-lg border border-border overflow-hidden mb-4">
