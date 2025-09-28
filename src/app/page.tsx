@@ -3,14 +3,14 @@
 
 
 
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
-import { createBrowserClient } from "@supabase/ssr";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import Image from "next/image";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useRouter } from "next/navigation";
+import type { User } from "@supabase/supabase-js";
 
 export default function Home() {
     const [prompt, setPrompt] = useState("");
@@ -20,9 +20,30 @@ export default function Home() {
     const [uploading, setUploading] = useState(false);
     const [videoUri, setVideoUri] = useState<string | null>(null);
     const [showLoadingScreen, setShowLoadingScreen] = useState(false);
+    const [user, setUser] = useState<User | null>(null);
+    const [authLoading, setAuthLoading] = useState(true);
     const router = useRouter();
 
+    const [uploadError, setUploadError] = useState<string | null>(null);
+
+    // Upload via server API to bypass Storage RLS and return a public URI
+    const uploadViaApi = async (file: File): Promise<string> => {
+        const fd = new FormData();
+        fd.append("file", file, file.name);
+        const resp = await fetch("/api/upload", { method: "POST", body: fd });
+        const json = await resp.json();
+        if (!resp.ok || json?.ok === false || (!json?.publicUrl && !json?.signedUrl)) {
+            throw new Error(json?.error || "Upload failed");
+        }
+        return (json.signedUrl ?? json.publicUrl) as string;
+    };
+
     const handleSubmit = async () => {
+        if (!user) {
+            alert('Please sign in to analyze videos');
+            return;
+        }
+
         // Route to results page which will show the LoadingScreen and fetch data
         setResponse("");
 
@@ -33,14 +54,17 @@ export default function Home() {
         setShowLoadingScreen(true);
 
         if (videoUri) {
-            // Remote or previously uploaded video URL
+            // Uploaded video URL
             params.set("video_uri", videoUri);
             router.push(`/results?${params.toString()}`);
         } else if (video) {
-            // Local file: pass a blob URL; results page will fetch the blob and POST to API
-            const objectUrl = URL.createObjectURL(video);
-            params.set("video_object_url", objectUrl);
-            params.set("video_name", video.name);
+            // Video selected but not uploaded yet - block navigation
+            setLoading(false);
+            setShowLoadingScreen(false);
+            setResponse("Please wait for the video to finish uploading before starting analysis.");
+            return;
+        } else if (prompt) {
+            // Prompt-only flow (no video)
             router.push(`/results?${params.toString()}`);
         } else {
             // No inputs provided
@@ -93,7 +117,23 @@ export default function Home() {
                                     type="file"
                                     id="video"
                                     accept="video/*"
-                                    onChange={(e) => setVideo(e.target.files?.[0] || null)}
+                                    onChange={async (e) => {
+                                        const f = e.target.files?.[0] || null;
+                                        setVideo(f);
+                                        setVideoUri(null);
+                                        setUploadError(null);
+                                        if (f) {
+                                            try {
+                                                setUploading(true);
+                                                const uri = await uploadViaApi(f);
+                                                setVideoUri(uri);
+                                            } catch (err: any) {
+                                                setUploadError(err?.message || "Upload failed");
+                                            } finally {
+                                                setUploading(false);
+                                            }
+                                        }
+                                    }}
                                     className="hidden"
                                 />
                                 <label htmlFor="video" className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 cursor-pointer border-l border-border flex items-center whitespace-nowrap h-10" style={{ fontSize: '1.1rem' }}>
@@ -102,8 +142,17 @@ export default function Home() {
                             </div>
                         </div>
                     </div>
+                    {uploading && (
+                        <p className="text-sm text-muted-foreground text-center mb-2">Uploading video...</p>
+                    )}
+                    {uploadError && (
+                        <p className="text-sm text-red-500 text-center mb-2">{uploadError}</p>
+                    )}
+                    {videoUri && (
+                        <p className="text-sm text-green-500 text-center mb-2">Upload complete.</p>
+                    )}
                     <div className="flex justify-center">
-                        <Button onClick={handleSubmit} disabled={loading || uploading || (!prompt && !videoUri && !video)} className="bg-primary text-primary-foreground hover:bg-primary/90 py-[1.75rem] px-8 whitespace-nowrap">
+                        <Button onClick={handleSubmit} disabled={loading || uploading || (!!video && !videoUri) || (!prompt && !videoUri)} className="bg-primary text-primary-foreground hover:bg-primary/90 py-[1.75rem] px-8 whitespace-nowrap">
                             {loading ? (
                                 <>
                                     <div className="inline-block w-4 h-4 border-2 border-primary-foreground border-t-primary rounded-full animate-spin mr-2"></div>
