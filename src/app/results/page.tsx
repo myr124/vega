@@ -327,6 +327,7 @@ export default function Results() {
     const [error, setError] = useState<string | null>(null);
     const [avatarList, setAvatarList] = useState<AvatarManifest>([]);
     const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+    const [activeTab, setActiveTab] = useState<"summary" | "insights">("summary");
     const avatarSeed = useMemo(() => {
         try {
             const key = "avatarSeed";
@@ -464,6 +465,10 @@ export default function Results() {
     const title = data?.video?.title || "- Untitled Video -";
     const metrics = data?.metrics || {};
     const personas = data?.personas || [];
+    const demographics = (data?.target_demographics as any[]) ?? [];
+    const retentionInfo = (data?.retention as any) ?? {};
+    const suggestions = (data?.suggestions as any) ?? {};
+    const advertising = (data?.advertising as any) ?? {};
 
     const viewingLikelihood = metrics.viewing_likelihood;
     const avgRetentionRate = metrics.avg_retention_rate;
@@ -483,8 +488,24 @@ export default function Results() {
                 )}
             </div>
 
+            {/* Tabs */}
+            <div className="max-w-6xl mx-auto mb-6 flex justify-center gap-2">
+                <button
+                    onClick={() => setActiveTab("summary")}
+                    className={`px-4 py-2 rounded-md text-sm font-medium border ${activeTab === "summary" ? "bg-indigo-500 text-white border-indigo-400" : "bg-black/50 text-white/80 border-white/20 hover:bg-white/10"}`}
+                >
+                    Summary
+                </button>
+                <button
+                    onClick={() => setActiveTab("insights")}
+                    className={`px-4 py-2 rounded-md text-sm font-medium border ${activeTab === "insights" ? "bg-indigo-500 text-white border-indigo-400" : "bg-black/50 text-white/80 border-white/20 hover:bg-white/10"}`}
+                >
+                    Insights
+                </button>
+            </div>
+
             {/* Top Metrics using Card components */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto mb-12">
+            <div className={`grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto mb-12 ${activeTab !== "summary" ? "hidden" : ""}`}>
                 {/* Views / Viewing Likelihood */}
                 <Card className="bg-black/60 border-white/20 text-center">
                     <CardHeader>
@@ -537,8 +558,181 @@ export default function Results() {
                 </Card>
             </div>
 
+            {/* Insights */}
+            <div className={`max-w-6xl mx-auto space-y-6 ${activeTab !== "insights" ? "hidden" : ""}`}>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Card className="bg-black/60 border-white/20">
+                        <CardHeader>
+                            <CardTitle className="text-white/80 text-sm">Target Demographics</CardTitle>
+                            <CardDescription className="text-white/60 text-xs">
+                                Who this content resonates with
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            {Array.isArray(demographics) && demographics.length > 0 ? (
+                                <ul className="list-disc pl-5 space-y-1 text-white/80">
+                                    {demographics.map((d: any, i: number) => (
+                                        <li key={i}>
+                                            {typeof d === "string"
+                                                ? d
+                                                : (() => {
+                                                    try {
+                                                        const entries = Object.entries(d ?? {})
+                                                            .filter(([, v]) => typeof v === "string" || typeof v === "number" || Array.isArray(v))
+                                                            .map(([k, v]) =>
+                                                                `${k}: ${Array.isArray(v) ? (v as any[]).join(", ") : String(v)}`
+                                                            );
+                                                        return entries.length ? entries.join(" • ") : JSON.stringify(d);
+                                                    } catch {
+                                                        return String(d);
+                                                    }
+                                                })()}
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="text-white/60">No demographics available.</p>
+                            )}
+                        </CardContent>
+                    </Card>
+
+                    <Card className="bg-black/60 border-white/20">
+                        <CardHeader>
+                            <CardTitle className="text-white/80 text-sm">Retention Insights</CardTitle>
+                            <CardDescription className="text-white/60 text-xs">
+                                Where viewers stay and where they drop off
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 gap-4">
+                                <div>
+                                    <div className="text-white/70 text-xs uppercase tracking-wide mb-1">High Retention Segments</div>
+                                    {Array.isArray(retentionInfo?.high_retention_segments) && retentionInfo.high_retention_segments.length > 0 ? (
+                                        <ul className="list-disc pl-5 space-y-1 text-white/80">
+                                            {retentionInfo.high_retention_segments.map((s: string, i: number) => <li key={i}>{s}</li>)}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-white/60">No data.</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <div className="text-white/70 text-xs uppercase tracking-wide mb-1">Low Retention Segments</div>
+                                    {Array.isArray(retentionInfo?.low_retention_segments) && retentionInfo.low_retention_segments.length > 0 ? (
+                                        <ul className="list-disc pl-5 space-y-1 text-white/80">
+                                            {retentionInfo.low_retention_segments.map((s: string, i: number) => <li key={i}>{s}</li>)}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-white/60">No data.</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <div className="text-white/70 text-xs uppercase tracking-wide mb-1">Key Dropoff Times</div>
+                                    {Array.isArray(retentionInfo?.key_dropoff_timestamps_sec) && retentionInfo.key_dropoff_timestamps_sec.length > 0 ? (
+                                        <div className="flex flex-wrap gap-2">
+                                            {retentionInfo.key_dropoff_timestamps_sec.map((t: number, i: number) => (
+                                                <span key={i} className="px-2 py-1 rounded bg-white/10 text-white/80 text-xs">
+                                                    {fmtDuration(t)}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-white/60">No dropoff timestamps.</p>
+                                    )}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="bg-black/60 border-white/20">
+                        <CardHeader>
+                            <CardTitle className="text-white/80 text-sm">Suggestions</CardTitle>
+                            <CardDescription className="text-white/60 text-xs">
+                                Actions to improve performance
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 gap-4">
+                                <div>
+                                    <div className="text-white/70 text-xs uppercase tracking-wide mb-1">Top Actions</div>
+                                    {Array.isArray(suggestions?.top_actions) && suggestions.top_actions.length > 0 ? (
+                                        <ul className="list-disc pl-5 space-y-1 text-white/80">
+                                            {suggestions.top_actions.map((s: string, i: number) => <li key={i}>{s}</li>)}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-white/60">No suggested actions.</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <div className="text-white/70 text-xs uppercase tracking-wide mb-1">Thumbnail Titles To Test</div>
+                                    {Array.isArray(suggestions?.thumbnail_titles_to_test) && suggestions.thumbnail_titles_to_test.length > 0 ? (
+                                        <ul className="list-disc pl-5 space-y-1 text-white/80">
+                                            {suggestions.thumbnail_titles_to_test.map((s: string, i: number) => <li key={i}>{s}</li>)}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-white/60">No thumbnail title suggestions.</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <div className="text-white/70 text-xs uppercase tracking-wide mb-1">Hook Scripts</div>
+                                    {Array.isArray(suggestions?.hook_scripts) && suggestions.hook_scripts.length > 0 ? (
+                                        <ul className="list-disc pl-5 space-y-1 text-white/80">
+                                            {suggestions.hook_scripts.map((s: string, i: number) => <li key={i}>{s}</li>)}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-white/60">No hook scripts.</p>
+                                    )}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="bg-black/60 border-white/20">
+                        <CardHeader>
+                            <CardTitle className="text-white/80 text-sm">Advertising</CardTitle>
+                            <CardDescription className="text-white/60 text-xs">
+                                Monetization fit and integration ideas
+                            </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="grid grid-cols-1 gap-4">
+                                <div>
+                                    <div className="text-white/70 text-xs uppercase tracking-wide mb-1">Suitable Sponsors</div>
+                                    {Array.isArray(advertising?.suitable_sponsors) && advertising.suitable_sponsors.length > 0 ? (
+                                        <ul className="list-disc pl-5 space-y-1 text-white/80">
+                                            {advertising.suitable_sponsors.map((s: string, i: number) => <li key={i}>{s}</li>)}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-white/60">No sponsor suggestions.</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <div className="text-white/70 text-xs uppercase tracking-wide mb-1">Ad Formats</div>
+                                    {Array.isArray(advertising?.ad_formats) && advertising.ad_formats.length > 0 ? (
+                                        <ul className="list-disc pl-5 space-y-1 text-white/80">
+                                            {advertising.ad_formats.map((s: string, i: number) => <li key={i}>{s}</li>)}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-white/60">No ad format suggestions.</p>
+                                    )}
+                                </div>
+                                <div>
+                                    <div className="text-white/70 text-xs uppercase tracking-wide mb-1">Integration Ideas</div>
+                                    {Array.isArray(advertising?.integration_ideas) && advertising.integration_ideas.length > 0 ? (
+                                        <ul className="list-disc pl-5 space-y-1 text-white/80">
+                                            {advertising.integration_ideas.map((s: string, i: number) => <li key={i}>{s}</li>)}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-white/60">No integration ideas.</p>
+                                    )}
+                                </div>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
+
             {/* Personas */}
-            <div className="max-w-6xl mx-auto">
+            <div className={`max-w-6xl mx-auto ${activeTab !== "summary" ? "hidden" : ""}`}>
                 <h2 className="text-white text-lg text-center mb-8">
                     See what some of our agent profiles think about your video
                 </h2>
