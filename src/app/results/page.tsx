@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import Lottie, { LottieRefCurrentProps } from "lottie-react";
 import { useSearchParams } from "next/navigation";
 import LoadingScreen from "@/components/LoadingScreen";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
@@ -246,11 +247,100 @@ function fmtDuration(sec?: number): string {
     return `${m}m ${s}s`;
 }
 
+/* Helpers for Lottie avatars */
+type AvatarManifest = string[];
+
+function normalizeAvatarPath(item: string): string {
+    if (!item) return "";
+    // Absolute URL (CDN etc.)
+    if (/^https?:\/\//i.test(item)) return item;
+    // Already absolute path, leave as-is
+    if (item.startsWith("/")) return item;
+    const cleaned = item.replace(/^\/+/, "");
+    // If already starts with "avatars/", just ensure leading slash
+    if (cleaned.startsWith("avatars/")) return `/${cleaned}`;
+    return `/avatars/${cleaned}`;
+}
+
+function pickAvatar(seed: number, list: AvatarManifest): string | null {
+    if (!Array.isArray(list) || list.length === 0) return null;
+    const n = Math.abs(Math.floor(seed));
+    const rand = (n % 233280) / 233280;
+    const i = Math.floor(rand * list.length);
+    return normalizeAvatarPath(list[i]);
+}
+
+function HoverLottieAvatar({ src, playing, size = 48 }: { src: string; playing?: boolean; size?: number }) {
+    const [data, setData] = useState<unknown | null>(null);
+    const lottieRef = useRef<LottieRefCurrentProps>(null);
+
+    useEffect(() => {
+        let cancelled = false;
+        async function load() {
+            try {
+                const r = await fetch(src);
+                const json = await r.json();
+                if (!cancelled) setData(json);
+            } catch {
+                // ignore
+            }
+        }
+        load();
+        return () => {
+            cancelled = true;
+        };
+    }, [src]);
+
+    useEffect(() => {
+        const inst = lottieRef.current;
+        if (!inst) return;
+        if (playing) {
+            inst.play();
+        } else {
+            inst.stop();
+        }
+    }, [playing]);
+
+    return (
+        <div
+            className="rounded-full overflow-hidden bg-gray-300 shrink-0 flex items-center justify-center"
+            style={{ width: size, height: size }}
+        >
+            {data ? (
+                <Lottie
+                    lottieRef={lottieRef}
+                    animationData={data}
+                    loop={true}
+                    autoplay={false}
+                    style={{ width: size, height: size }}
+                />
+            ) : null}
+        </div>
+    );
+}
+
 export default function Results() {
     const searchParams = useSearchParams();
     const [data, setData] = useState<ResultData>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [avatarList, setAvatarList] = useState<AvatarManifest>([]);
+    const [hoverIdx, setHoverIdx] = useState<number | null>(null);
+    const avatarSeed = useMemo(() => {
+        try {
+            const key = "avatarSeed";
+            const existing = typeof window !== "undefined" ? window.localStorage.getItem(key) : null;
+            if (existing) {
+                const n = parseInt(existing, 10);
+                if (!Number.isNaN(n)) return n;
+            }
+            const s = Math.floor(Math.random() * 1e9);
+            if (typeof window !== "undefined") window.localStorage.setItem(key, String(s));
+            return s;
+        } catch {
+            return Math.floor(Math.random() * 1e9);
+        }
+    }, []);
 
     const hasInputs = useMemo(() => {
         return (
@@ -314,6 +404,32 @@ export default function Results() {
             cancelled = true;
         };
     }, [searchParams]);
+
+    useEffect(() => {
+        let cancelled = false;
+        async function loadManifest() {
+            try {
+                const api = await fetch("/api/avatars", { cache: "no-store" });
+                let arr: unknown = await api.json();
+                if (!Array.isArray(arr) || arr.length === 0) {
+                    const r = await fetch("/avatars/manifest.json", { cache: "no-store" });
+                    arr = await r.json();
+                }
+                if (!cancelled && Array.isArray(arr)) {
+                    const list = (arr as unknown[]).filter(
+                        (x: unknown) => typeof x === "string" && (x as string).trim() !== ""
+                    ) as string[];
+                    setAvatarList(list);
+                }
+            } catch {
+                if (!cancelled) setAvatarList([]);
+            }
+        }
+        loadManifest();
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     if (loading) {
         return (
@@ -443,9 +559,18 @@ export default function Results() {
                             <div
                                 key={idx}
                                 className="rounded-lg border border-purple-500/30 bg-black/70 p-4 flex items-start gap-4 hover:border-purple-400/50 transition-colors"
+                                onMouseEnter={() => setHoverIdx(idx)}
+                                onMouseLeave={() => setHoverIdx((prev) => (prev === idx ? null : prev))}
                             >
                                 {/* Avatar */}
-                                <div className="w-12 h-12 rounded-full bg-gray-300 shrink-0" />
+                                {(() => {
+                                    const avatarUrl = pickAvatar(avatarSeed + idx, avatarList);
+                                    return avatarUrl ? (
+                                        <HoverLottieAvatar src={avatarUrl} playing={hoverIdx === idx} />
+                                    ) : (
+                                        <div className="w-12 h-12 rounded-full bg-gray-300 shrink-0" />
+                                    );
+                                })()}
 
                                 {/* Content */}
                                 <div className="flex-1 min-w-0">
