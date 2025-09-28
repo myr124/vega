@@ -16,6 +16,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+
 const exo_2 = Exo_2({
     variable: "--font-exo-2",
     subsets: ["latin"],
@@ -77,7 +78,7 @@ export default async function RootLayout({
                     <div className="ml-auto flex items-center gap-3">
                         {user ? (
                             <Link href="/protected">
-                                <Avatar>
+                                <Avatar className="border-2 p-5 border-purple-400 hover:border-purple-300 transition-colors">
                                     <AvatarImage src={user.user_metadata?.avatar_url ?? undefined} alt={user.email ?? "User"} />
                                     <AvatarFallback>{user.email?.[0]?.toUpperCase() ?? "U"}</AvatarFallback>
                                 </Avatar>
