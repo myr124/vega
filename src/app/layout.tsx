@@ -54,17 +54,17 @@ export default async function RootLayout({
                             <NavigationMenuList className="flex space-x-8">
                                 <Link href={"/"}>
                                     <NavigationMenuItem>
-                                        <NavigationMenuLink className="hover:text-primary text-2xl" style={{ color: "#E0E2DB" }}>Home</NavigationMenuLink>
+                                        <NavigationMenuLink className="text-2xl transition-all duration-50 hover:text-purple-400 hover:scale-110 underline-offset-4">Home</NavigationMenuLink>
                                     </NavigationMenuItem>
                                 </Link>
                                 <Link href={"/about"}>
                                     <NavigationMenuItem>
-                                        <NavigationMenuLink className="hover:text-primary text-2xl" style={{ color: "#E0E2DB" }}>About</NavigationMenuLink>
+                                        <NavigationMenuLink className="text-2xl transition-all duration-50 hover:text-purple-400 hover:scale-110 underline-offset-4">About</NavigationMenuLink>
                                     </NavigationMenuItem>
                                 </Link>
                                 <Link href={"/pricing"}>
                                     <NavigationMenuItem>
-                                        <NavigationMenuLink className="hover:text-primary text-2xl" style={{ color: "#E0E2DB" }}>Pricing</NavigationMenuLink>
+                                        <NavigationMenuLink className="text-2xl transition-all duration-50 hover:text-purple-400 hover:scale-110 underline-offset-4">Pricing</NavigationMenuLink>
                                     </NavigationMenuItem>
                                 </Link>
                             </NavigationMenuList>
