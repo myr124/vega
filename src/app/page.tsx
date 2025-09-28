@@ -64,7 +64,7 @@ export default function Home() {
             <main className="flex min-h-screen flex-col items-center justify-center p-8 text-foreground">
             <div className="flex flex-col items-center" style={{ marginTop: '-6rem', marginBottom: '1.5rem' }}>
                 <Image src="shellhacks.svg" height={450} width={450} alt="Vega Icon"/>
-                <h1 className="text-7xl font-extrabold uppercase text-center leading-[1.05] mb-0" style={{ letterSpacing: '-0.03em' }}>SHRINE BRIGHT, GO FAR</h1>
+                <h1 className="text-7xl font-extrabold uppercase text-center leading-[1.05] mb-0" style={{ letterSpacing: '-0.03em' }}>SHINE BRIGHT, GO FAR</h1>
                 <p className="text-2xl text-center text-muted-foreground leading-[1.05] mt-0 mb-0" style={{ letterSpacing: '-0.03em' }}>AI Agents that mimic real-world viewers</p>
             </div>
             <div className="w-full max-w-3xl mt-16">
