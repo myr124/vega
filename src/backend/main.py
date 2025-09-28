@@ -91,11 +91,25 @@ def compress_video_bytes(
             pass
 
         # Basic ffmpeg compression settings: re-encode with libx264 and moderate CRF.
+        # Apply duration/scale/fps limits to reduce model token usage and avoid INVALID_ARGUMENT
+        max_duration_sec = int(os.getenv("MAX_VIDEO_DURATION_SEC", "60") or "60")
+        target_height = int(os.getenv("VIDEO_TARGET_HEIGHT", "480") or "480")
+        target_fps = int(os.getenv("VIDEO_TARGET_FPS", "12") or "12")
+        vf = f"scale=-2:{target_height}:flags=lanczos"
+
         cmd = [
             "ffmpeg",
             "-y",
             "-i",
             in_path,
+        ]
+        if max_duration_sec > 0:
+            cmd += ["-t", str(max_duration_sec)]
+        cmd += [
+            "-vf",
+            vf,
+            "-r",
+            str(target_fps),
             "-vcodec",
             "libx264",
             "-preset",
@@ -167,6 +181,119 @@ def _extract_json_objects_from_text(text: str) -> list:
     except Exception:
         pass
     return objs
+
+
+def _sanitize_json_like_string(s: str) -> str:
+    """
+    Heuristically escape inner double-quotes that appear inside JSON string values
+    so the blob becomes valid JSON. Keeps existing escapes intact.
+    """
+    if not isinstance(s, str):
+        return s
+    out_chars = []
+    in_string = False
+    escape = False
+    for i, ch in enumerate(s):
+        if in_string:
+            if escape:
+                out_chars.append(ch)
+                escape = False
+                continue
+            if ch == "\\":
+                out_chars.append(ch)
+                escape = True
+                continue
+            if ch == '"':
+                # Look ahead to decide if this ends the string (next non-space is a JSON delimiter)
+                j = i + 1
+                while j < len(s) and s[j] in (" ", "\n", "\r", "\t"):
+                    j += 1
+                if j >= len(s) or s[j] in [",", "}", "]", ":"]:
+                    # Treat as closing quote
+                    out_chars.append(ch)
+                    in_string = False
+                else:
+                    # Likely an inner quote; escape it
+                    out_chars.append('\\"')
+                continue
+            # regular char inside string
+            out_chars.append(ch)
+        else:
+            if ch == '"':
+                out_chars.append(ch)
+                in_string = True
+            else:
+                out_chars.append(ch)
+    return "".join(out_chars)
+
+
+def _try_parse_json_like(txt: str):
+    if not isinstance(txt, str):
+        return None
+    try:
+        return json.loads(txt)
+    except Exception:
+        try:
+            fixed = _sanitize_json_like_string(txt)
+            return json.loads(fixed)
+        except Exception:
+            return None
+
+
+def _normalize_result_structure(value: Any) -> Any:
+    """
+    Convert JSON-like strings to structured objects and de-nest any 'output' field
+    that itself contains JSON. This prevents double-encoding like '\\n' in files.
+    Also attempts to extract embedded JSON from noisy strings.
+    """
+    parsed = value
+
+    # Try to parse top-level if it's a JSON string, with fallback to embedded extraction
+    for _ in range(3):
+        if isinstance(parsed, str):
+            txt = parsed.strip()
+            if txt:
+                if (txt[0] in "{[") and (txt[-1] in "}]"):
+                    candidate = _try_parse_json_like(txt)
+                    if candidate is not None:
+                        parsed = candidate
+                        continue
+                    # fall back to extracting embedded JSON from the string
+                    try:
+                        found = _extract_json_objects_from_text(txt)
+                        if found:
+                            parsed = found[0]
+                            continue
+                    except Exception:
+                        pass
+        break
+
+    # If dict with 'output' as JSON-like string, try to parse or extract
+    if isinstance(parsed, dict):
+        out = parsed.get("output")
+        if isinstance(out, str):
+            out_txt = out.strip()
+            if out_txt:
+                if (out_txt[0] in "{[") and (out_txt[-1] in "}]"):
+                    candidate = _try_parse_json_like(out_txt)
+                    if candidate is not None:
+                        parsed["output"] = candidate
+                    else:
+                        try:
+                            found = _extract_json_objects_from_text(out_txt)
+                            if found:
+                                parsed["output"] = found[0]
+                        except Exception:
+                            pass
+                else:
+                    # Even if it doesn't start with { or [, try to extract any JSON object inside
+                    try:
+                        found = _extract_json_objects_from_text(out_txt)
+                        if found:
+                            parsed["output"] = found[0]
+                    except Exception:
+                        pass
+    return parsed
 
 
 app = FastAPI(title="Agent Backend", version="0.1.0")
@@ -298,13 +425,19 @@ async def run_agent(
             result = "No response generated"
 
         # --- New: extract JSON objects produced by enjoyer/reviewer agents and persist them ---
+        found_json_objects: list = []
         try:
             # Gather texts from all event parts to search for JSON
             all_text = "\n".join(
-                p.text for e in events if getattr(e, "content", None) for p in e.content.parts if getattr(p, "text", None)
+                p.text
+                for e in events
+                if getattr(e, "content", None)
+                for p in e.content.parts
+                if getattr(p, "text", None)
             )
             found = _extract_json_objects_from_text(all_text)
             if found:
+                found_json_objects = found
                 # Ensure data dir exists
                 json_file = Path(__file__).parent / "data" / "json_objects.json"
                 json_file.parent.mkdir(parents=True, exist_ok=True)
@@ -335,8 +468,25 @@ async def run_agent(
         except Exception as e:
             print(f"WARNING: json extraction failed: {e}")
 
-        # Ensure JSON-serializable
-        safe_result = jsonable_encoder(result, custom_encoder={set: list})
+        # Ensure JSON-serializable (normalize potential JSON strings first)
+        normalized_result = _normalize_result_structure(result)
+        # If still string-like or contains string 'output', prefer extracted JSON if available
+        if (
+            (
+                isinstance(normalized_result, str)
+                or (
+                    isinstance(normalized_result, dict)
+                    and isinstance(normalized_result.get("output"), str)
+                )
+            )
+            and "found_json_objects" in locals()
+            and found_json_objects
+        ):
+            try:
+                normalized_result = found_json_objects[-1]
+            except Exception:
+                pass
+        safe_result = jsonable_encoder(normalized_result, custom_encoder={set: list})
 
         # Persist the result to a JSON file under src/backend/data
         try:
@@ -376,4 +526,3 @@ if __name__ == "__main__":
 
 jsonObjectList = []
 inputJsonObject = {}
-

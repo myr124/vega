@@ -5,5 +5,10 @@
     "session_id": "test_session",
     "created_at": "2025-09-27T17:38:56.552592Z"
   },
-  "result": "{\"mainCat\": \"Gaming\", \"retention\": 0.1, \"viewed\": false, \"liked\": false}"
+  "result": {
+    "mainCat": "Gaming",
+    "retention": 0.1,
+    "viewed": false,
+    "liked": false
+  }
 }
