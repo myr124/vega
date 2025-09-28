@@ -32,5 +32,3 @@ export async function createClient() {
     }
   );
 }
-
-export { createBrowserClient } from "@supabase/ssr";

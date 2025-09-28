@@ -3,7 +3,7 @@
 
 
 
-import { useState } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
 import AnimatedBackground from "@/components/AnimatedBackground";
@@ -11,6 +11,7 @@ import Image from "next/image";
 import LoadingScreen from "@/components/LoadingScreen";
 import { useRouter } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
 
 export default function Home() {
     const [prompt, setPrompt] = useState("");
@@ -23,8 +24,34 @@ export default function Home() {
     const [user, setUser] = useState<User | null>(null);
     const [authLoading, setAuthLoading] = useState(true);
     const router = useRouter();
+    const supabase = useMemo(
+        () =>
+            createBrowserClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            ),
+        []
+    );
 
     const [uploadError, setUploadError] = useState<string | null>(null);
+
+    // Initialize auth state on mount and keep it in sync (bridge via server)
+    useEffect(() => {
+        let mounted = true;
+        const init = async () => {
+            try {
+                const resp = await fetch("/api/auth/me", { credentials: "include" });
+                const json = await resp.json();
+                if (mounted) setUser(json?.user ?? null);
+            } finally {
+                if (mounted) setAuthLoading(false);
+            }
+        };
+        init();
+        return () => {
+            mounted = false;
+        };
+    }, []);
 
     // Upload via server API to bypass Storage RLS and return a public URI
     const uploadViaApi = async (file: File): Promise<string> => {
@@ -152,7 +179,7 @@ export default function Home() {
                         <p className="text-sm text-green-500 text-center mb-2">Upload complete.</p>
                     )}
                     <div className="flex justify-center">
-                        <Button onClick={handleSubmit} disabled={loading || uploading || (!!video && !videoUri) || (!prompt && !videoUri)} className="bg-primary text-primary-foreground hover:bg-primary/90 py-[1.75rem] px-8 whitespace-nowrap">
+                        <Button onClick={handleSubmit} disabled={authLoading || loading || uploading || (!!video && !videoUri) || (!prompt && !videoUri)} className="bg-primary text-primary-foreground hover:bg-primary/90 py-[1.75rem] px-8 whitespace-nowrap">
                             {loading ? (
                                 <>
                                     <div className="inline-block w-4 h-4 border-2 border-primary-foreground border-t-primary rounded-full animate-spin mr-2"></div>
