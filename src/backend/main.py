@@ -1,4 +1,5 @@
 import os
+import logging
 from typing import Any, Dict, Optional
 
 from dotenv import load_dotenv
@@ -171,6 +172,10 @@ def _extract_json_objects_from_text(text: str) -> list:
 
 app = FastAPI(title="Agent Backend", version="0.1.0")
 
+# Configure logging to show INFO messages from libraries and agent runtime
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # CORS configuration
 frontend_origin = os.getenv("FRONTEND_ORIGIN", "http://localhost:3000")
 allow_origins = [
@@ -284,10 +289,20 @@ async def run_agent(
             parts.append(types.Part(text="Process this video for YouTube Shorts."))
 
         new_message = types.Content(parts=parts, role="user")
-        events = list(
-            runner.run(user_id=user_id, session_id=session_id, new_message=new_message)
-        )
-        print("Events:", [str(e) for e in events])  # Debug print
+
+        # Stream runner events so we can log status as they arrive
+        events = []
+        try:
+            for event in runner.run(user_id=user_id, session_id=session_id, new_message=new_message):
+                # Print/Log each event as it arrives to surface agent status
+                try:
+                    logger.info(f"Agent event: %s", str(event))
+                except Exception:
+                    print("Agent event:", event)
+                events.append(event)
+        except Exception as e:
+            # In case the runner.run itself raises, capture the exception
+            logger.exception("runner.run failed: %s", e)
         # Extract result from events
         result = None
         for event in reversed(events):

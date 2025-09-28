@@ -79,6 +79,7 @@ for archetype in personality_archetypes:
         agent = LlmAgent(
             name=agent_name,
             model="gemini-2.5-flash-lite",
+            tools=[summarize_tool],
             instruction=instruction_text,
             description=f"{archetype} reviewer with {level} level perspective in {category}",
             output_key=f"{archetype}_{level}_review",
@@ -103,9 +104,19 @@ class outputSchema(BaseModel):
 merger_agent = LlmAgent(
     name="merger_agent",
     model="gemini-2.5-flash-lite",
-    instruction="You are a synthesis agent. Your job is to merge and analyze all the reviewer outputs from the parallel research phase. Combine all the JSON responses from the different reviewer personalities (shopping, music, movies_tv, gaming, news, sports, learning, fashion_beauty, tech across beginner/intermediate/expert levels) and provide a comprehensive analysis of predicted video performance including average retention rates, viewing likelihood, and like/dislike patterns across different audience segments. Please take the JSON file and append it to the jsonObjectList in main.py.",
-    description="Merges and synthesizes outputs from multiple reviewer agents into a cohesive final output.",
-    output_schema=outputSchema,
+    # tools=[summarize_tool],
+    instruction=(
+        "You will be given multiple reviewer JSON objects (one per sub-agent). "
+        "Your job is to return ONLY a single valid JSON object (no surrounding text) with the following keys and types:\n"
+        "- average_watch_time: number (the mean of retention * video_length; if video_length is unknown, assume 1)\n"
+        "- view_count: integer (how many agents had \"viewed\": true)\n"
+        "- like_rate: number (fraction between 0 and 1 = liked_count / view_count; if view_count is 0, set 0)\n"
+        "- average_age: number (mean age of agents who viewed)\n"
+        "- comments: array of strings (collect the comments field from each agent who viewed)\n"
+        "Return ONLY the JSON object. Example:\n"
+        "{\"average_watch_time\":0.72,\"view_count\":12,\"like_rate\":0.75,\"average_age\":34.2,\"comments\":[\"Great pacing\",\"Too long\"]}"
+    ),
+    description="Merges and synthesizes outputs from multiple reviewer agents into a data",
     output_key="final_summary",
 )
 
