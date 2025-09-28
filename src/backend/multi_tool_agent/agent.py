@@ -78,7 +78,7 @@ for archetype in personality_archetypes:
         )
         agent = LlmAgent(
             name=agent_name,
-            model="gemini-2.0-flash-lite",
+            model="gemini-2.5-flash-lite",
             instruction=instruction_text,
             description=f"{archetype} reviewer with {level} level perspective in {category}",
             output_key=f"{archetype}_{level}_review",
@@ -103,7 +103,7 @@ class outputSchema(BaseModel):
 merger_agent = LlmAgent(
     name="merger_agent",
     model="gemini-2.5-flash-lite",
-    instruction=load_instruction_from_file("./instructions/synthesis_prompt.txt"),
+    instruction="You are a synthesis agent. Your job is to merge and analyze all the reviewer outputs from the parallel research phase. Combine all the JSON responses from the different reviewer personalities (shopping, music, movies_tv, gaming, news, sports, learning, fashion_beauty, tech across beginner/intermediate/expert levels) and provide a comprehensive analysis of predicted video performance including average retention rates, viewing likelihood, and like/dislike patterns across different audience segments. Please take the JSON file and append it to the jsonObjectList in main.py.",
     description="Merges and synthesizes outputs from multiple reviewer agents into a cohesive final output.",
     output_schema=outputSchema,
     output_key="final_summary",
