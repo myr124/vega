@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
+import AsteroidGame from "./AsteroidGame";
 
 export default function LoadingScreen({ onComplete }: { onComplete?: () => void }) {
     const steps = [
@@ -12,6 +13,7 @@ export default function LoadingScreen({ onComplete }: { onComplete?: () => void 
     ];
 
     const [stepIndex, setStepIndex] = useState(0);
+    const [showGame, setShowGame] = useState(false);
     const barConfigs = useMemo(
         () =>
             Array.from({ length: 20 }, (_, i) => ({
@@ -34,15 +36,15 @@ export default function LoadingScreen({ onComplete }: { onComplete?: () => void 
     }, [stepIndex, onComplete]);
 
     return (
-        <div className="flex items-center justify-center h-screen bg-gradient-to-br from-indigo-900 to-gray-900">
-            <div className="bg-black/80 rounded-xl px-10 py-8 text-center text-purple-200 shadow-xl">
+        <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-indigo-900 to-gray-900 p-4 py-6 overflow-hidden">
+            <div className="bg-black/80 rounded-xl px-8 py-6 text-center text-purple-200 shadow-xl mb-4 w-80 h-40">
                 {/* Step text */}
                 <p className="text-lg mb-6 transition-opacity duration-700">
                     {steps[stepIndex]}
                 </p>
 
                 {/* Animated bars */}
-                <div className="flex items-end justify-center gap-[3px]">
+                <div className="flex items-end justify-center gap-[3px] h-20">
                     {Array.from({ length: 20 }).map((_, i) => (
                         <motion.div
                             key={i}
@@ -60,6 +62,21 @@ export default function LoadingScreen({ onComplete }: { onComplete?: () => void 
                     ))}
                 </div>
             </div>
+
+            {/* Game toggle button */}
+            <button
+                onClick={() => setShowGame(!showGame)}
+                className="mb-3 px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-semibold transition-colors text-sm"
+            >
+                {showGame ? 'Hide Game' : 'Play Asteroid Shooter!'}
+            </button>
+
+            {/* Asteroid Game */}
+            {showGame && (
+                <div className="bg-black/80 rounded-xl p-4 shadow-xl">
+                    <AsteroidGame isActive={showGame} />
+                </div>
+            )}
         </div>
     );
 }
