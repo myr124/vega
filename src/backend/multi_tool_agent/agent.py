@@ -31,7 +31,7 @@ summarize_tool = AgentTool(agent=summarizer_agent)
 # --- Sub Agent 1: Transcriber ---
 transcriber_agent = LlmAgent(
     name="VideoTranscriber",
-    model="gemini-2.0-flash-lite",
+    model="gemini-2.5-flash-lite",
     instruction=load_instruction_from_file("./instructions/video_transcriber.txt"),
     description="Transcribes audio from video files into clean, formatted text",
     tools=[summarize_tool],
@@ -51,6 +51,7 @@ archetype_to_category = {
     "sports": "Sports",
     "learning": "Learning",
     "fashion_beauty": "Fashion & Beauty",
+    "tech": "Technology",
 }
 
 personality_archetypes = [
@@ -62,6 +63,7 @@ personality_archetypes = [
     "sports",
     "learning",
     "fashion_beauty",
+    "tech",
 ]  # 8 categories
 interest_levels = ["beginner", "intermediate", "expert"]
 
