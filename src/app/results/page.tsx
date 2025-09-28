@@ -38,17 +38,71 @@ function tryParseLLMJson(input: unknown): unknown {
     }
 }
 
+function sanitizeJsonLikeString(s: string): string {
+    let out = "";
+    let inString = false;
+    let escape = false;
+    for (let i = 0; i < s.length; i++) {
+        const ch = s[i];
+        if (inString) {
+            if (escape) {
+                out += ch;
+                escape = false;
+                continue;
+            }
+            if (ch === "\\") {
+                out += ch;
+                escape = true;
+                continue;
+            }
+            if (ch === '"') {
+                let j = i + 1;
+                while (j < s.length && /\s/.test(s[j])) j++;
+                if (j >= s.length || [",", "}", "]", ":"].includes(s[j])) {
+                    out += ch;
+                    inString = false;
+                } else {
+                    out += '\\"';
+                }
+                continue;
+            }
+            out += ch;
+        } else {
+            if (ch === '"') {
+                out += ch;
+                inString = true;
+            } else {
+                out += ch;
+            }
+        }
+    }
+    return out;
+}
+
+function tryParseJsonLike(input: unknown): any {
+    if (typeof input !== "string") return input;
+    // Reuse tryParseLLMJson first (handles fences and trimming)
+    const firstPass = tryParseLLMJson(input);
+    if (firstPass && typeof firstPass === "object") return firstPass;
+    // If still string or failed, attempt sanitizer for inner quotes
+    try {
+        return JSON.parse(sanitizeJsonLikeString(String(input)));
+    } catch {
+        return input;
+    }
+}
+
 function normalizeLLMPayload(json: any): any {
     let obj = json;
 
     // If entire payload is a JSON string (with escaped \n etc), parse it
     if (typeof obj === "string") {
-        obj = tryParseLLMJson(obj);
+        obj = tryParseJsonLike(obj);
     }
 
     // If shape is { result: "..." }, parse the string result
     if (obj && typeof obj === "object" && typeof obj.result === "string") {
-        const parsed = tryParseLLMJson(obj.result);
+        const parsed = tryParseJsonLike(obj.result);
         if (parsed && typeof parsed === "object") {
             obj = { ...obj, result: parsed };
         }
@@ -59,28 +113,33 @@ function normalizeLLMPayload(json: any): any {
 
     // If payload is a string JSON, parse it
     if (typeof payload === "string") {
-        const p = tryParseLLMJson(payload);
+        const p = tryParseJsonLike(payload);
         if (p && typeof p === "object") payload = p;
     }
 
-    // Unwrap cases like { output: "{...}" } from LLMs
-    if (payload && typeof payload === "object" && typeof (payload as any).output === "string") {
-        const p = tryParseLLMJson((payload as any).output);
-        if (p && typeof p === "object") payload = p;
+    // Unwrap cases like { output: "..."/{...} } from LLMs
+    if (payload && typeof payload === "object") {
+        const out: any = (payload as any).output;
+        if (typeof out === "string") {
+            const p = tryParseJsonLike(out);
+            if (p && typeof p === "object") payload = p;
+        } else if (out && typeof out === "object") {
+            payload = out;
+        }
     }
 
     // Some fields themselves might be JSON strings — parse them
     if (payload && typeof payload === "object") {
         if (typeof payload.video === "string") {
-            const p = tryParseLLMJson(payload.video);
+            const p = tryParseJsonLike(payload.video);
             if (p && typeof p === "object") payload.video = p;
         }
         if (typeof payload.metrics === "string") {
-            const p = tryParseLLMJson(payload.metrics);
+            const p = tryParseJsonLike(payload.metrics);
             if (p && typeof p === "object") payload.metrics = p;
         }
         if (typeof payload.personas === "string") {
-            const p = tryParseLLMJson(payload.personas);
+            const p = tryParseJsonLike(payload.personas);
             if (Array.isArray(p)) payload.personas = p;
         }
     }

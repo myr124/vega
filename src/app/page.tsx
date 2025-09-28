@@ -3,10 +3,9 @@
 
 
 
-import { useState, useMemo, useEffect } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Upload } from "lucide-react";
-import { createBrowserClient } from "@supabase/ssr";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import Image from "next/image";
 import LoadingScreen from "@/components/LoadingScreen";
@@ -25,48 +24,18 @@ export default function Home() {
     const [authLoading, setAuthLoading] = useState(true);
     const router = useRouter();
 
-    // Initialize Supabase client
-    const supabase = useMemo(() => createBrowserClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    ), []);
+    const [uploadError, setUploadError] = useState<string | null>(null);
 
-    // Check authentication status
-    useEffect(() => {
-        const checkAuth = async () => {
-            const { data: { user } } = await supabase.auth.getUser();
-            setUser(user);
-            setAuthLoading(false);
-        };
-
-        checkAuth();
-
-        // Listen for auth changes
-        const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-            setUser(session?.user ?? null);
-            setAuthLoading(false);
-        });
-
-        return () => subscription.unsubscribe();
-    }, [supabase.auth]);
-
-    const handleSignIn = async () => {
-        const { error } = await supabase.auth.signInWithOAuth({
-            provider: 'google',
-            options: {
-                redirectTo: `${window.location.origin}`
-            }
-        });
-        if (error) {
-            console.error('Error signing in:', error);
+    // Upload via server API to bypass Storage RLS and return a public URI
+    const uploadViaApi = async (file: File): Promise<string> => {
+        const fd = new FormData();
+        fd.append("file", file, file.name);
+        const resp = await fetch("/api/upload", { method: "POST", body: fd });
+        const json = await resp.json();
+        if (!resp.ok || json?.ok === false || (!json?.publicUrl && !json?.signedUrl)) {
+            throw new Error(json?.error || "Upload failed");
         }
-    };
-
-    const handleSignOut = async () => {
-        const { error } = await supabase.auth.signOut();
-        if (error) {
-            console.error('Error signing out:', error);
-        }
+        return (json.signedUrl ?? json.publicUrl) as string;
     };
 
     const handleSubmit = async () => {
@@ -85,14 +54,17 @@ export default function Home() {
         setShowLoadingScreen(true);
 
         if (videoUri) {
-            // Remote or previously uploaded video URL
+            // Uploaded video URL
             params.set("video_uri", videoUri);
             router.push(`/results?${params.toString()}`);
         } else if (video) {
-            // Local file: pass a blob URL; results page will fetch the blob and POST to API
-            const objectUrl = URL.createObjectURL(video);
-            params.set("video_object_url", objectUrl);
-            params.set("video_name", video.name);
+            // Video selected but not uploaded yet - block navigation
+            setLoading(false);
+            setShowLoadingScreen(false);
+            setResponse("Please wait for the video to finish uploading before starting analysis.");
+            return;
+        } else if (prompt) {
+            // Prompt-only flow (no video)
             router.push(`/results?${params.toString()}`);
         } else {
             // No inputs provided
@@ -115,112 +87,82 @@ export default function Home() {
         <>
             <AnimatedBackground />
             <main className="flex min-h-screen flex-col items-center justify-center p-8 text-foreground">
-                {/* Auth Status Bar */}
-                <div className="absolute top-4 right-4">
-                    {authLoading ? (
-                        <div className="text-sm text-muted-foreground">Loading...</div>
-                    ) : user ? (
-                        <div className="flex items-center gap-4">
-                            <span className="text-sm text-muted-foreground">
-                                Welcome, {user.email}
-                            </span>
-                            <Button 
-                                onClick={handleSignOut} 
-                                variant="outline" 
-                                size="sm"
-                            >
-                                Sign Out
-                            </Button>
-                        </div>
-                    ) : (
-                        <Button 
-                            onClick={handleSignIn} 
-                            variant="default" 
-                            size="sm"
-                        >
-                            Sign In with Google
-                        </Button>
-                    )}
-                </div>
-
                 <div className="flex flex-col items-center" style={{ marginTop: '-6rem', marginBottom: '1.5rem' }}>
                     <Image src="shellhacks.svg" height={450} width={450} alt="Vega Icon" />
                     <h1 className="text-7xl font-extrabold uppercase text-center leading-[1.05] mb-0" style={{ letterSpacing: '-0.03em' }}>SHINE BRIGHT, GO FAR</h1>
                     <p className="text-2xl text-center text-muted-foreground leading-[1.05] mt-0 mb-0" style={{ letterSpacing: '-0.03em' }}>AI Agents that mimic real-world viewers</p>
                 </div>
-                <div className="w-full max-w-3xl mt-4">
-                    {!authLoading && !user ? (
-                        <div className="text-center py-6 px-8 bg-black/60 backdrop-blur-sm rounded-2xl border border-purple-500/30 shadow-2xl">
-                            <h2 className="text-3xl font-bold text-white mb-2">Welcome to Vega</h2>
-                            <p className="text-purple-200 mb-8 italic">
-                                Please sign up to access video analysis features
-                            </p>
-                            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                                <Button 
-                                    onClick={() => router.push('/signup')} 
-                                    size="lg"
-                                    className="px-10 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-purple-500/25 transition-all duration-300 transform hover:scale-105 border-0"
-                                >
-                                    Sign Up
-                                </Button>
-                                <Button 
-                                    onClick={() => router.push('/login')}
-                                    size="lg"
-                                    className="px-10 py-4 bg-transparent hover:bg-purple-600/20 text-purple-300 hover:text-white font-semibold rounded-xl border-2 border-purple-500 hover:border-purple-400 transition-all duration-300 transform hover:scale-105"
-                                >
-                                    Log In
-                                </Button>
+                <div className="w-full max-w-3xl mt-16">
+                    <div className="bg-card rounded-lg border border-border overflow-hidden mb-4">
+                        <div
+                            className="flex h-10"
+                            style={{
+                                opacity: 0.7,
+                                background: "rgba(190, 183, 164, 0.50)",
+                                minWidth: '600px',
+                                maxWidth: '1000px',
+                                margin: '0 auto',
+                            }}
+                        >
+                            <div className="flex flex-1 items-center">
+                                <input
+                                    type="text"
+                                    id="file-display"
+                                    value={video ? video.name : "No File Chosen"}
+                                    readOnly
+                                    className="flex-1 px-4 py-2 bg-transparent border-r border-border placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary text-lg"
+                                    style={{ color: "var(--primary-foreground)", height: '40px' }}
+                                />
+                                <input
+                                    type="file"
+                                    id="video"
+                                    accept="video/*"
+                                    onChange={async (e) => {
+                                        const f = e.target.files?.[0] || null;
+                                        setVideo(f);
+                                        setVideoUri(null);
+                                        setUploadError(null);
+                                        if (f) {
+                                            try {
+                                                setUploading(true);
+                                                const uri = await uploadViaApi(f);
+                                                setVideoUri(uri);
+                                            } catch (err: any) {
+                                                setUploadError(err?.message || "Upload failed");
+                                            } finally {
+                                                setUploading(false);
+                                            }
+                                        }
+                                    }}
+                                    className="hidden"
+                                />
+                                <label htmlFor="video" className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 cursor-pointer border-l border-border flex items-center whitespace-nowrap h-10" style={{ fontSize: '1.1rem' }}>
+                                    <Upload size={20} style={{ marginRight: 4 }} />
+                                </label>
                             </div>
                         </div>
-                    ) : user ? (
-                        <>
-                            <div className="bg-card rounded-lg border border-border overflow-hidden mb-5 mt-3">
-                                <div
-                                    className="flex h-10"
-                                    style={{
-                                        opacity: 0.7,
-                                        background: "rgba(190, 183, 164, 0.50)",
-                                        minWidth: '600px',
-                                        maxWidth: '1000px',
-                                        margin: '0 auto',
-                                    }}
-                                >
-                                    <div className="flex flex-1 items-center">
-                                        <input
-                                            type="text"
-                                            id="file-display"
-                                            value={video ? video.name : "No File Chosen"}
-                                            readOnly
-                                            className="flex-1 px-4 py-2 bg-transparent border-r border-border placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary text-lg"
-                                            style={{ color: "var(--primary-foreground)", height: '40px' }}
-                                        />
-                                        <input
-                                            type="file"
-                                            id="video"
-                                            accept="video/*"
-                                            onChange={(e) => setVideo(e.target.files?.[0] || null)}
-                                            className="hidden"
-                                        />
-                                        <label htmlFor="video" className="bg-primary text-primary-foreground hover:bg-primary/90 px-4 py-2 cursor-pointer border-l border-border flex items-center whitespace-nowrap h-10" style={{ fontSize: '1.1rem' }}>
-                                            <Upload size={20} style={{ marginRight: 4 }} />
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="flex justify-center">
-                                <Button onClick={handleSubmit} disabled={loading || uploading || (!prompt && !videoUri && !video)} className="bg-primary text-primary-foreground hover:bg-primary/90 py-[1.75rem] px-8 whitespace-nowrap">
-                                    {loading ? (
-                                        <>
-                                            <div className="inline-block w-4 h-4 border-2 border-primary-foreground border-t-primary rounded-full animate-spin mr-2"></div>
-                                            Analyzing..
-                                        </>
-                                    ) : (
-                                        "Start Analysis"
-                                    )}
-                                </Button>
-                            </div>
-                        </>
-                    ) : null}
+                    </div>
+                    {uploading && (
+                        <p className="text-sm text-muted-foreground text-center mb-2">Uploading video...</p>
+                    )}
+                    {uploadError && (
+                        <p className="text-sm text-red-500 text-center mb-2">{uploadError}</p>
+                    )}
+                    {videoUri && (
+                        <p className="text-sm text-green-500 text-center mb-2">Upload complete.</p>
+                    )}
+                    <div className="flex justify-center">
+                        <Button onClick={handleSubmit} disabled={loading || uploading || (!!video && !videoUri) || (!prompt && !videoUri)} className="bg-primary text-primary-foreground hover:bg-primary/90 py-[1.75rem] px-8 whitespace-nowrap">
+                            {loading ? (
+                                <>
+                                    <div className="inline-block w-4 h-4 border-2 border-primary-foreground border-t-primary rounded-full animate-spin mr-2"></div>
+                                    Analyzing..
+                                </>
+                            ) : (
+                                "Start Analysis"
+                            )}
+                        </Button>
+                    </div>
                     {response && (
                         <div className="mt-4 p-3 bg-muted rounded-md border border-border w-full max-w-2xl fade-in">
                             <p className="text-sm text-foreground">{response}</p>
