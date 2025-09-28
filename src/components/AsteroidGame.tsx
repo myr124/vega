@@ -237,12 +237,18 @@ export default function AsteroidGame({ isActive }: { isActive: boolean }) {
                 .filter(particle => particle.life > 0)
             );
 
-            // Check bullet-asteroid collisions
+            // Check bullet-asteroid collisions and ship collisions
             setBullets(prevBullets => {
                 const remainingBullets = [...prevBullets];
+                let shipHit = false;
                 
                 setAsteroids(prevAsteroids => {
                     const remainingAsteroids = [...prevAsteroids];
+                    
+                    // Check ship collision with current asteroids first
+                    shipHit = remainingAsteroids.some(asteroid => 
+                        checkCollision(shipPos.x, shipPos.y, 10, asteroid.x, asteroid.y, asteroid.size)
+                    );
                     
                     prevBullets.forEach((bullet, bulletIndex) => {
                         prevAsteroids.forEach((asteroid, asteroidIndex) => {
@@ -288,24 +294,20 @@ export default function AsteroidGame({ isActive }: { isActive: boolean }) {
                     return remainingAsteroids;
                 });
                 
+                // Handle ship collision after asteroid state is updated
+                if (shipHit) {
+                    // Game over - reset the game
+                    setGameStarted(false);
+                    setScore(0);
+                    setAsteroids([]);
+                    setBullets([]);
+                    setParticles([]);
+                    setShipPos({ x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2 });
+                    createExplosion(shipPos.x, shipPos.y);
+                }
+                
                 return remainingBullets;
             });
-
-            // Check ship-asteroid collisions (game over)
-            const shipHit = asteroids.some(asteroid => 
-                checkCollision(shipPos.x, shipPos.y, 10, asteroid.x, asteroid.y, asteroid.size)
-            );
-            
-            if (shipHit) {
-                // Game over - reset the game
-                setGameStarted(false);
-                setScore(0);
-                setAsteroids([]);
-                setBullets([]);
-                setParticles([]);
-                setShipPos({ x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2 });
-                createExplosion(shipPos.x, shipPos.y);
-            }
 
             animationRef.current = requestAnimationFrame(gameLoop);
         };
@@ -316,7 +318,7 @@ export default function AsteroidGame({ isActive }: { isActive: boolean }) {
                 cancelAnimationFrame(animationRef.current);
             }
         };
-    }, [isActive, gameStarted, createAsteroid, createExplosion]);
+    }, [isActive, gameStarted, createAsteroid, createExplosion, asteroids, shipPos]);
 
     // Spawn asteroids periodically
     useEffect(() => {
@@ -403,14 +405,36 @@ export default function AsteroidGame({ isActive }: { isActive: boolean }) {
 
                 {/* Player ship */}
                 <div
-                    className="absolute w-4 h-4 bg-purple-400"
+                    className="absolute"
                     style={{
-                        left: shipPos.x - 8,
-                        top: shipPos.y - 8,
-                        clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
-                        transform: `rotate(${Math.atan2(mousePos.y - shipPos.y, mousePos.x - shipPos.x) * 180 / Math.PI + 90}deg)`
+                        left: shipPos.x - 10,
+                        top: shipPos.y - 10,
+                        width: '20px',
+                        height: '20px',
+                        transform: `rotate(${Math.atan2(mousePos.y - shipPos.y, mousePos.x - shipPos.x) * 180 / Math.PI + 90}deg)`,
+                        transition: 'transform 0.1s ease-out'
                     }}
-                />
+                >
+                    {/* Ship body (main triangle) */}
+                    <div 
+                        className="absolute w-4 h-4 bg-purple-400"
+                        style={{
+                            left: '2px',
+                            top: '0px',
+                            clipPath: 'polygon(50% 0%, 0% 100%, 100% 100%)',
+                            boxShadow: '0 0 4px #a855f7'
+                        }}
+                    />
+                    {/* Ship thruster (small rectangle at back) */}
+                    <div 
+                        className="absolute w-2 h-1 bg-orange-400"
+                        style={{
+                            left: '7px',
+                            top: '16px',
+                            boxShadow: '0 0 6px #fb923c'
+                        }}
+                    />
+                </div>
 
                 {/* Bullets */}
                 {bullets.map(bullet => (
