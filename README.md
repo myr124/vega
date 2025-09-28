@@ -70,44 +70,7 @@ Social feeds are crowded. Breaking through requires the right tone, structure, a
 2. **Analyze**: VEGA’s AI personas review and discuss the content.
 3. **Receive**: A concise summary + prioritized recommendations.
 
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                         Frontend (Next.js + React)                           │
-│                                                                              │
-│  ┌─────────────┐   ┌──────────────┐   ┌──────────────┐   ┌──────────────┐   │
-│  │ React (TS)  │   │ Next App Dir │   │ Tailwind CSS │   │ shadcn/ui    │   │
-│  └─────────────┘   └──────────────┘   └──────────────┘   └──────────────┘   │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌──────────────────────────────────────────────────────────────────────────────┐
-│                       API Layer (Next.js API Routes)                         │
-│                                                                              │
-│  ┌──────────────────┐  ┌─────────────────┐  ┌────────────────────────────┐  │
-│  │ Auth Middleware  │  │ REST/Route Hand │  │ Supabase Client (server)   │  │
-│  │ (middleware.ts)  │  │ lers (app/api)  │  │ (CRUD, RPC, storage)       │  │
-│  └──────────────────┘  └─────────────────┘  └────────────────────────────┘  │
-│                                                                              │
-└──────────────────────────────────────────────────────────────────────────────┘
-                         │                               │
-                         ▼                               ▼
-┌───────────────────────────────────────┐   ┌──────────────────────────────────┐
-│           External Services           │   │           Database Layer         │
-│                                       │   │                                  │
-│  ┌─────────────────────────────────┐  │   │  ┌────────────────────────────┐  │
-│  │ Supabase (Auth • Storage • RPC) │  │   │  │ Postgres (via Supabase)    │  │
-│  └─────────────────────────────────┘  │   │  │ PL/pgSQL Functions/Policies│  │
-│                                       │   │  └────────────────────────────┘  │
-│  ┌─────────────────────────────────┐  │   │                                  │
-│  │ Vercel (Hosting/Edge Runtime)   │  │   │                                  │
-│  └─────────────────────────────────┘  │   │                                  │
-│                                       │   │                                  │
-│  ┌─────────────────────────────────┐  │   │                                  │
-│  │ Python Service (present in repo │  │   │                                  │
-│  │ via uvicorn logs; auxiliary)    │  │   │                                  │
-│  └─────────────────────────────────┘  │   │                                  │
-└───────────────────────────────────────┘   └──────────────────────────────────┘
-
+<img width="513" height="672" alt="image" src="https://github.com/user-attachments/assets/951bc752-d79d-4d40-8789-1b2fb2d49c98" />
 
 
 ---
