@@ -8,7 +8,7 @@ CRITICAL REQUIREMENTS:
 - Maintain chronological order of all speech
 
 TRANSCRIPTION SPECIFICATIONS:
-1. 80% COVERAGE: You are allowed to make mistakes. Watch the video once.
+1. 75% COVERAGE: You are allowed to make mistakes. Watch the video once.
 2. SPEAKER IDENTIFICATION: 
    - Use "Speaker 1:", "Speaker 2:", etc. for different voices
    - If only one speaker, use "Speaker 1:" throughout
