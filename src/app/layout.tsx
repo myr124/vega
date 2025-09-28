@@ -4,18 +4,15 @@ import "./globals.css";
 import { Newsreader, Fraunces } from "next/font/google";
 import {
     NavigationMenu,
-    NavigationMenuContent,
-    NavigationMenuIndicator,
     NavigationMenuItem,
     NavigationMenuLink,
     NavigationMenuList,
-    NavigationMenuTrigger,
-    NavigationMenuViewport,
 } from "@/components/ui/navigation-menu"
 import Link from "next/link";
 import { createClient } from "@/lib/supabase";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+
 const exo_2 = Exo_2({
     variable: "--font-exo-2",
     subsets: ["latin"],
@@ -48,13 +45,13 @@ export default async function RootLayout({
         <html className={exo_2.className} lang="en">
             <body className="dark">
                 <nav
-                    className="flex items-center p-4 sticky top-0 z-50"
+                    className="grid grid-cols-3 items-center p-4 sticky top-0 z-50"
                     style={{ background: "var(--background)", borderBottom: "1px solid #E0E2DB" }}
                 >
-                    <div className="text-4xl font-bold mr-8" style={{ color: "#E0E2DB" }}>VEGA</div>
-                    <div className="flex-1 flex justify-center">
-                        <NavigationMenu className="flex justify-center w-full">
-                            <NavigationMenuList className="flex space-x-8 justify-center w-full">
+                    <div className="text-4xl font-bold pl-2" style={{ color: "#E0E2DB" }}>VEGA</div>
+                    <div className="flex justify-center">
+                        <NavigationMenu>
+                            <NavigationMenuList className="flex space-x-8">
                                 <Link href={"/"}>
                                     <NavigationMenuItem>
                                         <NavigationMenuLink className="hover:text-primary text-2xl" style={{ color: "#E0E2DB" }}>Home</NavigationMenuLink>
@@ -77,7 +74,7 @@ export default async function RootLayout({
                     <div className="ml-auto flex items-center gap-3">
                         {user ? (
                             <Link href="/protected">
-                                <Avatar>
+                                <Avatar className="border-2 p-5 border-purple-400 hover:border-purple-300 transition-colors">
                                     <AvatarImage src={user.user_metadata?.avatar_url ?? undefined} alt={user.email ?? "User"} />
                                     <AvatarFallback>{user.email?.[0]?.toUpperCase() ?? "U"}</AvatarFallback>
                                 </Avatar>

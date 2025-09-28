@@ -2,14 +2,12 @@
 
 import { Button } from "@/components/ui/button";
 import { Github, Star, Zap, Brain, Users, Rocket, Video, Bot, FileText, Sparkles } from "lucide-react";
-import AnimatedBackground from "@/components/AnimatedBackground";
 import Image from "next/image";
 import Link from "next/link";
 
 export default function AboutPage() {
     return (
         <>
-            <AnimatedBackground />
             <main className="min-h-screen text-foreground relative">
                 {/* Header */}
                 <div className="absolute top-4 left-4 z-10">
@@ -21,7 +19,7 @@ export default function AboutPage() {
                 </div>
 
                 {/* Hero Section */}
-                <section className="flex flex-col items-center justify-center min-h-screen px-8 text-center pt-20">
+                <section className="flex flex-col items-center justify-center min-h-screen px-8 text-center pt-15">
                     <div className="mb-12">
                         <Image src="/shellhacks.svg" height={230} width={230} alt="Vega Icon" className="mx-auto mb-6" />
                         <h1 className="text-5xl md:text-6xl font-extrabold uppercase mb-4 bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent">
@@ -198,7 +196,7 @@ export default function AboutPage() {
                     </div>
 
                     {/* GitHub Section */}
-                    <div className="bg-black/60 backdrop-blur-sm rounded-2xl p-8 border border-purple-500/30 max-w-3xl mx-auto">
+                    <div className="bg-black/60 backdrop-blur-sm rounded-2xl p-8 border border-purple-500/30 max-w-3xl mx-auto mb-10">
                         <h2 className="text-3xl font-bold mb-4 flex items-center justify-center gap-2">
                             <Star className="w-8 h-8 text-yellow-400" />
                             Built for ShellHacks 2025
@@ -206,7 +204,7 @@ export default function AboutPage() {
                         <p className="text-muted-foreground mb-6 text-center max-w-2xl mx-auto"> 
                             Explore our codebase or fork it to create your own AI-powered video analysis platform.
                         </p>
-                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                        <div className="flex flex-col sm:flex-row gap-3 justify-center">
                             <Button 
                                 asChild
                                 size="lg"
