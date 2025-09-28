@@ -18,12 +18,120 @@ function tryParseLLMJson(input: unknown): unknown {
       s = s.slice(firstBrace, lastBrace + 1);
     }
 
-    // JSON.parse will correctly handle \n sequences when they are part of strings
-    return JSON.parse(s);
+    // Try parse; if it fails, attempt a heuristic sanitizer for inner quotes
+    try {
+      return JSON.parse(s);
+    } catch {
+      const fixed = sanitizeJsonLikeString(s);
+      return JSON.parse(fixed);
+    }
   } catch {
-    // If parsing fails, return original input
     return input;
   }
+}
+
+function sanitizeJsonLikeString(s: string): string {
+  // Escape suspicious inner quotes inside JSON string values to help JSON.parse succeed
+  let out = "";
+  let inString = false;
+  let escape = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (inString) {
+      if (escape) {
+        out += ch;
+        escape = false;
+        continue;
+      }
+      if (ch === "\\") {
+        out += ch;
+        escape = true;
+        continue;
+      }
+      if (ch === '"') {
+        // Peek next non-space to decide if it's a terminator
+        let j = i + 1;
+        while (j < s.length && /\s/.test(s[j])) j++;
+        if (j >= s.length || [",", "}", "]", ":"].includes(s[j])) {
+          out += ch;
+          inString = false;
+        } else {
+          out += '\\"';
+        }
+        continue;
+      }
+      out += ch;
+    } else {
+      if (ch === '"') {
+        out += ch;
+        inString = true;
+      } else {
+        out += ch;
+      }
+    }
+  }
+  return out;
+}
+
+function tryParseJsonLike(input: unknown): any {
+  if (typeof input !== "string") return input;
+  const parsed = tryParseLLMJson(input);
+  return parsed;
+}
+
+function normalizePayload(data: any): any {
+  let obj: any = data;
+
+  // If entire response is a JSON string, parse it
+  if (typeof obj === "string") {
+    const parsed = tryParseJsonLike(obj);
+    if (parsed && typeof parsed === "object") obj = parsed;
+  }
+
+  // If { result: "..." }, parse it
+  if (obj && typeof obj === "object" && typeof obj.result === "string") {
+    const parsed = tryParseJsonLike(obj.result);
+    if (parsed && typeof parsed === "object") {
+      obj = { ...obj, result: parsed };
+    }
+  }
+
+  // Work with the final payload (obj.result if present, else obj)
+  let payload: any = obj?.result ?? obj;
+
+  // Parse if payload itself is a string JSON
+  if (typeof payload === "string") {
+    const p = tryParseJsonLike(payload);
+    if (p && typeof p === "object") payload = p;
+  }
+
+  // Unwrap/parse output field if present
+  if (payload && typeof payload === "object") {
+    const out = (payload as any).output;
+    if (typeof out === "string") {
+      const p = tryParseJsonLike(out);
+      if (p && typeof p === "object") payload = p;
+    } else if (out && typeof out === "object") {
+      // If output is already structured, unwrap it
+      payload = out;
+    }
+
+    // Optionally parse nested JSON-like strings
+    if (typeof (payload as any).video === "string") {
+      const p = tryParseJsonLike((payload as any).video);
+      if (p && typeof p === "object") (payload as any).video = p;
+    }
+    if (typeof (payload as any).metrics === "string") {
+      const p = tryParseJsonLike((payload as any).metrics);
+      if (p && typeof p === "object") (payload as any).metrics = p;
+    }
+    if (typeof (payload as any).personas === "string") {
+      const p = tryParseJsonLike((payload as any).personas);
+      if (Array.isArray(p)) (payload as any).personas = p;
+    }
+  }
+
+  return payload;
 }
 
 function sanitizeNewlines(value: any): any {
@@ -97,25 +205,14 @@ export async function POST(request: NextRequest) {
 
     const data = await backendResponse.json();
 
-    // Normalize Gemini output that may come back as a JSON string (with \n and/or code fences)
-    let normalized: any = data;
-
-    if (typeof data === "string") {
-      const parsed = tryParseLLMJson(data);
-      normalized = parsed ?? data;
-    } else if (
-      data &&
-      typeof data === "object" &&
-      typeof (data as any).result === "string"
-    ) {
-      const parsed = tryParseLLMJson((data as any).result);
-      if (parsed && typeof parsed === "object") {
-        normalized = { ...(data as any), result: parsed };
-      }
-    }
-
-    const sanitized = sanitizeNewlines(normalized);
-    return NextResponse.json(sanitized);
+    // Normalize and sanitize before sending to the GUI
+    const normalizedResult = normalizePayload(data);
+    const finalPayload = sanitizeNewlines(
+      data && typeof data === "object"
+        ? { ...(data as any), result: normalizedResult }
+        : normalizedResult
+    );
+    return NextResponse.json(finalPayload);
   } catch (error) {
     console.error("Proxy error:", error);
     return NextResponse.json(
