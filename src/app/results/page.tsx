@@ -303,7 +303,7 @@ function HoverLottieAvatar({ src, playing, size = 48 }: { src: string; playing?:
 
     return (
         <div
-            className="rounded-full overflow-hidden bg-gray-300 shrink-0 flex items-center justify-center"
+            className="relative rounded-full overflow-hidden bg-gray-300 shrink-0"
             style={{ width: size, height: size }}
         >
             {data ? (
@@ -312,7 +312,8 @@ function HoverLottieAvatar({ src, playing, size = 48 }: { src: string; playing?:
                     animationData={data}
                     loop={true}
                     autoplay={false}
-                    style={{ width: size, height: size }}
+                    rendererSettings={{ preserveAspectRatio: "xMidYMid slice" }}
+                    style={{ position: "absolute", inset: 0, width: "100%", height: "100%" }}
                 />
             ) : null}
         </div>
