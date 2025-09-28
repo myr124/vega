@@ -10,6 +10,7 @@ import { createBrowserClient } from "@supabase/ssr";
 import AnimatedBackground from "@/components/AnimatedBackground";
 import Image from "next/image";
 import LoadingScreen from "@/components/LoadingScreen";
+import { useRouter } from "next/navigation";
 
 export default function Home() {
     const [prompt, setPrompt] = useState("");
@@ -19,39 +20,31 @@ export default function Home() {
     const [uploading, setUploading] = useState(false);
     const [videoUri, setVideoUri] = useState<string | null>(null);
     const [showLoadingScreen, setShowLoadingScreen] = useState(false);
-    
+    const router = useRouter();
+
     const handleSubmit = async () => {
+        // Route to results page which will show the LoadingScreen and fetch data
+        setResponse("");
+
+        const params = new URLSearchParams();
+        if (prompt) params.set("prompt", prompt);
         setLoading(true);
         setResponse("");
         setShowLoadingScreen(true);
 
-        const formData = new FormData();
-        if (prompt) {
-            formData.append("prompt", prompt);
-        }
         if (videoUri) {
-            formData.append("video_uri", videoUri);
+            // Remote or previously uploaded video URL
+            params.set("video_uri", videoUri);
+            router.push(`/results?${params.toString()}`);
         } else if (video) {
-            formData.append("video", video, video.name);
-        }
-
-        try {
-            const res = await fetch("/api/adk", {
-                method: "POST",
-                body: formData,
-            });
-
-            const data = await res.json();
-            if (data.ok) {
-                setResponse(data.result || "Success!");
-            } else {
-                setResponse(`Error: ${data.error}`);
-            }
-        } catch (error) {
-            setResponse("Request failed.");
-        } finally {
-            setLoading(false);
-            setShowLoadingScreen(false);
+            // Local file: pass a blob URL; results page will fetch the blob and POST to API
+            const objectUrl = URL.createObjectURL(video);
+            params.set("video_object_url", objectUrl);
+            params.set("video_name", video.name);
+            router.push(`/results?${params.toString()}`);
+        } else {
+            // No inputs provided
+            return;
         }
     };
 
@@ -71,7 +64,8 @@ export default function Home() {
             <AnimatedBackground />
             <main className="flex min-h-screen flex-col items-center justify-center p-8 text-foreground">
                 <div className="flex flex-col items-center" style={{ marginTop: '-6rem', marginBottom: '1.5rem' }}>
-                    <Image src="shellhacks.svg" height={450} width={450} alt="Vega Icon"/>
+                    <Image src="shellhacks.svg" height={450} width={450} alt="Vega Icon" />
+                    <Image src="shellhacks.svg" height={450} width={450} alt="Vega Icon" />
                     <h1 className="text-7xl font-extrabold uppercase text-center leading-[1.05] mb-0" style={{ letterSpacing: '-0.03em' }}>SHINE BRIGHT, GO FAR</h1>
                     <p className="text-2xl text-center text-muted-foreground leading-[1.05] mt-0 mb-0" style={{ letterSpacing: '-0.03em' }}>AI Agents that mimic real-world viewers</p>
                 </div>
@@ -126,6 +120,7 @@ export default function Home() {
                             <p className="text-sm text-foreground">{response}</p>
                         </div>
                     )}
+                    {showLoadingScreen && <LoadingScreen />}
                 </div>
             </main>
         </>
