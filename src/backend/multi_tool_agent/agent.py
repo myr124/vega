@@ -3,6 +3,7 @@ import os
 # Load environment variables
 try:
     from dotenv import load_dotenv
+
     load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 except Exception:
     pass
@@ -16,14 +17,16 @@ from google.adk.tools.agent_tool import AgentTool
 
 from .util import load_instruction_from_file
 
+
 # ---------------------------
 # 1) Tiny schema for personas
 # ---------------------------
 class PersonaMiniSchema(BaseModel):
     mainCat: str
-    retention: float   # 0.0–1.0
+    retention: float  # 0.0–1.0
     viewed: bool
     liked: bool
+
 
 # --- Sub Agent 2: Summarizer ---
 summarizer_agent = LlmAgent(
@@ -57,6 +60,7 @@ archetype_to_category = {
     "sports": "Sports",
     "learning": "Learning",
     "fashion_beauty": "Fashion & Beauty",
+    "technology": "Technology",
 }
 
 personality_archetypes = [
@@ -68,6 +72,7 @@ personality_archetypes = [
     "sports",
     "learning",
     "fashion_beauty",
+    "technology",
 ]
 interest_levels = ["beginner", "intermediate", "expert"]
 
@@ -76,10 +81,8 @@ for archetype in personality_archetypes:
     for level in interest_levels:
         base = load_instruction_from_file("./instructions/enjoyer_instruction.txt")
         instruction_text = (
-            base.replace("{level}", level)
-                .replace("{category}", category)
-                +
-            """
+            base.replace("{level}", level).replace("{category}", category)
+            + """
 STRICT OUTPUT RULES:
 Return ONLY this JSON object (no prose, no markdown, no extra keys):
 {
@@ -104,13 +107,15 @@ Do not print long analyses; keep reasoning internal.
         )
         research_agents.append(agent)
 
+
 # ---------------------------------------------
 # 2) Batch fan-out into small ParallelAgent "waves"
 #    (keeps stock ADK; reduces 429s & blast radius)
 # ---------------------------------------------
 def chunk(lst, n):
     for i in range(0, len(lst), n):
-        yield lst[i:i+n]
+        yield lst[i : i + n]
+
 
 WAVE_SIZE = 6  # tune: 6–8 is a good start
 review_waves = []
@@ -123,9 +128,13 @@ for i, wave_agents in enumerate(chunk(research_agents, WAVE_SIZE), start=1):
         )
     )
 
+
 # --- Output schema for the merger (the big final object you already use) ---
 class outputSchema(BaseModel):
-    output: str = Field(description=load_instruction_from_file("./instructions/outputschema.txt"))
+    output: str = Field(
+        description=load_instruction_from_file("./instructions/outputschema.txt")
+    )
+
 
 # --- Merger Agent ---
 # TIP in your synthesis_prompt.txt:
@@ -146,9 +155,9 @@ merger_agent = LlmAgent(
 sequential_pipeline_agent = SequentialAgent(
     name="VideoAnalysisPipeline",
     sub_agents=[
-        transcriber_agent,   # Phase 1
-        *review_waves,       # Phase 2: multiple small ParallelAgent batches
-        merger_agent,        # Phase 3
+        transcriber_agent,  # Phase 1
+        *review_waves,  # Phase 2: multiple small ParallelAgent batches
+        merger_agent,  # Phase 3
     ],
     description="Coordinates video processing, batched parallel reviews, and synthesis.",
 )
