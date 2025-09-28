@@ -19,7 +19,7 @@ export default function AboutPage() {
                 </div>
 
                 {/* Hero Section */}
-                <section className="flex flex-col items-center justify-center min-h-screen px-8 text-center pt-20">
+                <section className="flex flex-col items-center justify-center min-h-screen px-8 text-center pt-15">
                     <div className="mb-12">
                         <Image src="/shellhacks.svg" height={230} width={230} alt="Vega Icon" className="mx-auto mb-6" />
                         <h1 className="text-5xl md:text-6xl font-extrabold uppercase mb-4 bg-gradient-to-r from-purple-400 via-pink-400 to-indigo-400 bg-clip-text text-transparent">
